@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos11 API Docs</title>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    header { background: #111827; color: #fff; padding: 16px 24px; }
+    header a { color: #93c5fd; text-decoration: none; margin-right: 12px; }
+    main { height: calc(100vh - 64px); }
+    .tabs { background: #f3f4f6; padding: 8px 16px; border-bottom: 1px solid #e5e7eb; }
+    .tabs a { margin-right: 12px; color: #2563eb; text-decoration: none; }
+    .pane { width: 100%; height: calc(100% - 42px); }
+    iframe, .pane > div { width: 100%; height: 100%; border: 0; }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/redoc@latest/bundles/redoc.standalone.js"></script>
+</head>
+<body>
+  <header>
+    <strong>Pedidos11 API</strong>
+    <span style="margin-left:12px;opacity:.8">Documentação interativa</span>
+    <span style="float:right">
+      <a href="/api/v1/">Índice</a>
+      <a href="/api/schema/">Schema (JSON)</a>
+    </span>
+  </header>
+  <div class="tabs">
+    <a href="#swagger" onclick="show('swagger')">Swagger UI</a>
+    <a href="#redoc" onclick="show('redoc')">Redoc</a>
+  </div>
+  <main>
+    <div style="padding:10px 16px;border-bottom:1px solid #e5e7eb;background:#fafafa">
+      <label for="token" style="font-size:13px;color:#374151">Token JWT</label>
+      <input id="token" type="text" placeholder="Bearer token" style="width:48%;padding:8px;border:1px solid #d1d5db;border-radius:6px;margin:0 8px">
+      <button onclick="setToken()" style="padding:8px 12px;background:#2563eb;color:#fff;border:0;border-radius:6px">Usar Token</button>
+      <span id="tokenStatus" style="margin-left:8px;color:#374151;font-size:13px"></span>
+    </div>
+    <div id="swagger" class="pane">
+      <div id="swagger-ui"></div>
+    </div>
+    <div id="redoc" class="pane" style="display:none">
+      <redoc spec-url="/api/schema/"></redoc>
+    </div>
+  </main>
+  <script>
+    function show(id) {
+      document.getElementById('swagger').style.display = (id === 'swagger') ? 'block' : 'none';
+      document.getElementById('redoc').style.display = (id === 'redoc') ? 'block' : 'none';
+    }
+    function setToken() {
+      const t = document.getElementById('token').value.trim();
+      if (t) {
+        localStorage.setItem('api_token', t);
+        document.getElementById('tokenStatus').textContent = 'Token aplicado';
+      } else {
+        localStorage.removeItem('api_token');
+        document.getElementById('tokenStatus').textContent = 'Token removido';
+      }
+    }
+    const existing = localStorage.getItem('api_token');
+    if (existing) document.getElementById('token').value = existing;
+    window.onload = () => {
+      SwaggerUIBundle({
+        url: '/api/schema/',
+        dom_id: '#swagger-ui',
+        presets: [SwaggerUIBundle.presets.apis],
+        requestInterceptor: (req) => {
+          const token = localStorage.getItem('api_token');
+          if (token) {
+            req.headers = req.headers || {};
+            req.headers['Authorization'] = `Bearer ${token}`;
+          }
+          return req;
+        },
+      });
+    };
+  </script>
+</body>
+</html>
