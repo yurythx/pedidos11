@@ -229,3 +229,5 @@ USE_X_FORWARDED_HOST = os.getenv('USE_X_FORWARDED_HOST', 'False').lower() in ('1
 if os.getenv('USE_PROXY_SSL_HEADER', 'False').lower() in ('1', 'true', 'yes'):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+CSRF_COOKIE_DOMAIN = os.getenv('CSRF_COOKIE_DOMAIN', '') or None
+SESSION_COOKIE_DOMAIN = os.getenv('SESSION_COOKIE_DOMAIN', '') or None
