@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   db:
     image: postgres:16-alpine
@@ -18,6 +17,10 @@ services:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:-change-me}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - DEFAULT_SUPERUSER_USERNAME=${DEFAULT_SUPERUSER_USERNAME:-}
+      - DEFAULT_SUPERUSER_PASSWORD=${DEFAULT_SUPERUSER_PASSWORD:-}
+      - DEFAULT_SUPERUSER_EMAIL=${DEFAULT_SUPERUSER_EMAIL:-}
+      - DEFAULT_SUPERUSER_RESET_PASSWORD=${DEFAULT_SUPERUSER_RESET_PASSWORD:-False}
       - DB_ENGINE=postgres
       - DB_NAME=pedidos11
       - DB_USER=pedidos11

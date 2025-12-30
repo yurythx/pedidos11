@@ -41,6 +41,14 @@ docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 ## Observações
-- Ajuste ALLOWED_HOSTS com o domínio de produção
-- Configure certificados TLS no proxy externo (Nginx/Traefik) se necessário
-- Para uso com Cloudflare Tunnel e aaPanel, veja [docs/cloudflare.md](cloudflare.md)
+- Observações
+  - Ajuste ALLOWED_HOSTS com o domínio de produção
+  - Configure certificados TLS no proxy externo (Nginx/Traefik) se necessário
+  - Para uso com Cloudflare Tunnel e aaPanel, veja [docs/cloudflare.md](cloudflare.md)
+  - Superusuário automático:
+    - Defina variáveis:
+      - DEFAULT_SUPERUSER_USERNAME=suporte
+      - DEFAULT_SUPERUSER_PASSWORD=<defina a senha>
+      - DEFAULT_SUPERUSER_EMAIL=suporte@seu.dominio.com (opcional)
+      - DEFAULT_SUPERUSER_RESET_PASSWORD=True para forçar troca de senha em rebuild
+    - O entrypoint cria/atualiza após migrate

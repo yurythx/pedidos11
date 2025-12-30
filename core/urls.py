@@ -23,9 +23,11 @@ from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from drf_spectacular.utils import extend_schema
 from django.views.generic import TemplateView, RedirectView
 from django.db import connection
 
+@extend_schema(exclude=True)
 class ApiRoot(APIView):
     """Índice da API com links para módulos principais."""
     renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
@@ -43,6 +45,7 @@ class ApiRoot(APIView):
 
 urlpatterns = [
     path('', RedirectView.as_view(url='/api/schema/swagger-ui/', permanent=False)),
+    path('favicon.ico', RedirectView.as_view(url='/static/favicon.svg', permanent=False)),
     path('admin/', admin.site.urls),
     path('api/v1/', ApiRoot.as_view(), name='api-root'),
     path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
