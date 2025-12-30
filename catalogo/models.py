@@ -62,8 +62,7 @@ class Produto(models.Model):
             base_slug = slugify(self.nome)
             slug = base_slug
             idx = 1
-            from cadastro.models import Produto as CProduto  # evitar colisão
-            while CProduto.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            while Produto.objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug = f"{base_slug}-{idx}"
                 idx += 1
             self.slug = slug
@@ -71,8 +70,7 @@ class Produto(models.Model):
             base = slugify(self.nome)[:40]
             code = base or 'produto'
             i = 1
-            from cadastro.models import Produto as CProduto
-            while CProduto.objects.filter(sku=code).exclude(pk=self.pk).exists():
+            while Produto.objects.filter(sku=code).exclude(pk=self.pk).exists():
                 code = f"{base}-{i}"
                 i += 1
             self.sku = code

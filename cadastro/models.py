@@ -75,17 +75,6 @@ class Customer(models.Model):
         return self.nome
 
 
-class Categoria(models.Model):
-    nome = models.CharField(max_length=120, unique=True)
-    slug = models.SlugField(max_length=140, unique=True, blank=True)
-
-    def save(self, *args, **kwargs):
-        if not self.slug and self.nome:
-            self.slug = slugify(self.nome)
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.nome
 
 
 class Produto(models.Model):
@@ -104,7 +93,7 @@ class Produto(models.Model):
     ncm = models.CharField(max_length=8, blank=True)
     cfop = models.CharField(max_length=4, blank=True)
     atributos = models.JSONField(blank=True, null=True)
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name='produtos')
+    categoria = models.ForeignKey('catalogo.Categoria', on_delete=models.PROTECT, related_name='produtos')
     preco = models.DecimalField(max_digits=10, decimal_places=2)
     custo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     descricao = models.TextField(blank=True)

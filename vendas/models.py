@@ -1,42 +1,13 @@
 """Modelos de Vendas.
 
-Incluem categorias, produtos (com variações e atributos), pedidos e itens,
-com geração de slugs/SKU e utilitários de subtotal.
+Incluem pedidos e itens, referenciando produtos do app catalogo,
+com geração de slugs e utilitários de subtotal.
 """
 from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 from decimal import Decimal
 import secrets
-
-
-class Categoria(models.Model):
-    """Categoria de produto, com slug derivado do nome."""
-    nome = models.CharField(max_length=120, unique=True)
-    slug = models.SlugField(max_length=140, unique=True, blank=True)
-
-    def save(self, *args, **kwargs):
-        if not self.slug and self.nome:
-            self.slug = slugify(self.nome)
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.nome
-
-
-from cadastro.models import Produto
-
-
-from cadastro.models import ProdutoImagem
-
-
-from cadastro.models import ProdutoAtributo
-
-
-from cadastro.models import ProdutoAtributoValor
-
-
-from cadastro.models import ProdutoVariacao
 
 
 class Pedido(models.Model):
@@ -70,7 +41,7 @@ class Pedido(models.Model):
 class ItemPedido(models.Model):
     """Item do pedido com quantidade e preço unitário."""
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='itens')
-    produto = models.ForeignKey('cadastro.Produto', on_delete=models.PROTECT, related_name='itens_pedido')
+    produto = models.ForeignKey('catalogo.Produto', on_delete=models.PROTECT, related_name='itens_pedido')
     quantidade = models.PositiveIntegerField()
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 

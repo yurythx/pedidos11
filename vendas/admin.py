@@ -1,77 +1,11 @@
 from django.contrib import admin
-"""Admin de Vendas: gestão de produtos, categorias e pedidos.
+"""Admin de Vendas: gestão de pedidos.
 
-Inclui actions para disponibilidade, status de pedidos, recalcular totais,
-gerar títulos AR e exportar CSV de produtos/pedidos.
+Inclui actions para disponibilidade de pedidos, status, recalcular totais,
+gerar títulos AR e exportar CSV de pedidos.
 """
-from django.utils.safestring import mark_safe
 from financeiro.services import FinanceiroService
-from .models import Categoria, Produto, Pedido, ItemPedido, ProdutoImagem, ProdutoAtributo, ProdutoAtributoValor, ProdutoVariacao
-
-
-@admin.action(description="Marcar produtos como disponíveis")
-def marcar_disponiveis(modeladmin, request, queryset):
-    updated = queryset.update(disponivel=True)
-    modeladmin.message_user(request, f"{updated} produto(s) marcado(s) como disponíveis.")
-
-
-@admin.action(description="Marcar produtos como indisponíveis")
-def marcar_indisponiveis(modeladmin, request, queryset):
-    updated = queryset.update(disponivel=False)
-    modeladmin.message_user(request, f"{updated} produto(s) marcado(s) como indisponíveis.")
-
-
-class ProdutoAdmin(admin.ModelAdmin):
-    """Admin para Produto com preview de imagem e ações de disponibilidade."""
-    list_display = ("nome", "categoria", "preco", "disponivel", "slug", "imagem_preview")
-    list_filter = ("categoria", "disponivel")
-    search_fields = ("nome", "descricao")
-    readonly_fields = ("slug", "imagem_preview")
-    actions = [marcar_disponiveis, marcar_indisponiveis]
-
-    @admin.action(description="Exportar produtos selecionados em CSV")
-    def exportar_produtos_csv(self, request, queryset):
-        from django.http import HttpResponse
-        rows = ["nome,categoria,preco,disponivel,slug"]
-        for pr in queryset.select_related("categoria"):
-            rows.append(f"{pr.nome},{pr.categoria.nome if pr.categoria else ''},{pr.preco:.2f},{pr.disponivel},{pr.slug}")
-        csv = "\n".join(rows) + "\n"
-        resp = HttpResponse(csv, content_type="text/csv")
-        resp['Content-Disposition'] = 'attachment; filename=\"produtos.csv\"'
-        return resp
-    actions = [marcar_disponiveis, marcar_indisponiveis, exportar_produtos_csv]
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related("categoria")
-
-    def imagem_preview(self, obj):
-        if obj.imagem:
-            return mark_safe(f'<img src="{obj.imagem.url}" style="height:60px" />')
-        return "-"
-    imagem_preview.short_description = "Imagem"
-
-
-class ProdutoInline(admin.TabularInline):
-    """Inline para exibir/editar produtos dentro da categoria."""
-    model = Produto
-    extra = 0
-    fields = ("nome", "preco", "disponivel")
-    show_change_link = True
-
-
-class CategoriaAdmin(admin.ModelAdmin):
-    """Admin para Categoria com total de produtos e inline de produtos."""
-    list_display = ("nome", "slug", "total_produtos")
-    search_fields = ("nome",)
-    readonly_fields = ("slug",)
-    inlines = [ProdutoInline]
-
-    def total_produtos(self, obj):
-        return obj.produtos.count()
-    total_produtos.short_description = "Qtde Produtos"
-
-
- 
+from .models import Pedido, ItemPedido
 
 
 @admin.action(description="Marcar pedidos como Pendente")

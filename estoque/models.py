@@ -5,7 +5,7 @@ recebimentos com itens, vinculando pedidos, compras, usuários e fornecedores.
 """
 from django.conf import settings
 from django.db import models
-from cadastro.models import Produto
+from catalogo.models import Produto
 from vendas.models import Pedido
 from cadastro.models import Supplier
 from django.utils import timezone

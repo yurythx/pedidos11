@@ -7,7 +7,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from cadastro.models import Supplier
-from cadastro.models import Produto
+from catalogo.models import Produto
 import secrets
 
 

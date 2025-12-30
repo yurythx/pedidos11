@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from vendas.models import Pedido, ItemPedido, Categoria
+from vendas.models import Pedido, ItemPedido
 from estoque.models import StockMovement
 import hashlib
 from django.utils.http import http_date
