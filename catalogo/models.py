@@ -15,7 +15,7 @@ class Categoria(models.Model):
 
     class Meta:
         managed = False
-        db_table = "vendas_categoria"
+        db_table = "cadastro_categoria"
         verbose_name = "Categoria"
         verbose_name_plural = "Categorias"
 
