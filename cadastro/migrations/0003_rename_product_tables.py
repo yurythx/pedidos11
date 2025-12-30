@@ -7,24 +7,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelTable(
-            name='produto',
-            table='cadastro_produto',
-        ),
-        migrations.AlterModelTable(
-            name='produtoimagem',
-            table='cadastro_produtoimagem',
-        ),
-        migrations.AlterModelTable(
-            name='produtoatributo',
-            table='cadastro_produtoatributo',
-        ),
-        migrations.AlterModelTable(
-            name='produtoatributovalor',
-            table='cadastro_produtoatributovalor',
-        ),
-        migrations.AlterModelTable(
-            name='produtovariacao',
-            table='cadastro_produtovariacao',
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL("ALTER TABLE vendas_produto RENAME TO cadastro_produto"),
+                migrations.RunSQL("ALTER TABLE vendas_produtoimagem RENAME TO cadastro_produtoimagem"),
+                migrations.RunSQL("ALTER TABLE vendas_produtoatributo RENAME TO cadastro_produtoatributo"),
+                migrations.RunSQL("ALTER TABLE vendas_produtoatributovalor RENAME TO cadastro_produtoatributovalor"),
+                migrations.RunSQL("ALTER TABLE vendas_produtovariacao RENAME TO cadastro_produtovariacao"),
+            ],
+            state_operations=[],
         ),
     ]
