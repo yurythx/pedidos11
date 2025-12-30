@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admindocs',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'django_filters',
@@ -62,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.AuditRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -186,9 +188,8 @@ if not DEBUG:
     })
 
 # CORS configuration
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
+_cors = os.getenv('CORS_ALLOWED_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = [o for o in _cors.split(',') if o] or ['http://localhost:3000']
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_MINUTES', '30'))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_DAYS', '7'))),

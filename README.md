@@ -77,6 +77,21 @@ docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml up --build -d
 ```
 
+## Cliente TypeScript (Next.js)
+- Geração a partir do schema OpenAPI:
+```bash
+npx openapi-typescript http://localhost:8000/api/schema/ -o clients/ts/sdk.ts
+```
+- Uso básico:
+```ts
+import type { paths } from './clients/ts/sdk'
+// exemplo: tipar chamada GET /api/v1/catalogo/produtos/
+type ProdutosResponse = paths['/api/v1/catalogo/produtos/']['get']['responses']['200']['content']['application/json']
+```
+- Alternativas:
+  - npx openapi-client-axios
+  - npx orval
+
 ## Uso da API
 - Obter token JWT:
 ```bash

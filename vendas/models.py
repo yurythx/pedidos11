@@ -24,123 +24,19 @@ class Categoria(models.Model):
         return self.nome
 
 
-class Produto(models.Model):
-    """Produto base com metadados fiscais e de catálogo."""
-    nome = models.CharField(max_length=150)
-    slug = models.SlugField(max_length=160, unique=True, blank=True)
-    sku = models.CharField(max_length=64, unique=True, blank=True)
-    ean = models.CharField(max_length=14, blank=True, db_index=True)
-    UNIDADES = (
-        ('UN', 'Unidade'),
-        ('CX', 'Caixa'),
-        ('KG', 'Kilograma'),
-        ('LT', 'Litro'),
-    )
-    unidade = models.CharField(max_length=4, choices=UNIDADES, default='UN')
-    marca = models.CharField(max_length=120, blank=True)
-    ncm = models.CharField(max_length=8, blank=True)
-    cfop = models.CharField(max_length=4, blank=True)
-    atributos = models.JSONField(blank=True, null=True)
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name='produtos')
-    preco = models.DecimalField(max_digits=10, decimal_places=2)
-    custo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    descricao = models.TextField(blank=True)
-    imagem = models.ImageField(upload_to='produtos/', blank=True, null=True)
-    disponivel = models.BooleanField(default=True)
-
-    def save(self, *args, **kwargs):
-        """Gera slug único e SKU único derivado do nome."""
-        if not self.slug and self.nome:
-            base_slug = slugify(self.nome)
-            slug = base_slug
-            idx = 1
-            while Produto.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-                slug = f"{base_slug}-{idx}"
-                idx += 1
-            self.slug = slug
-        if not self.sku:
-            base = slugify(self.nome)[:40]
-            code = base or 'produto'
-            i = 1
-            while Produto.objects.filter(sku=code).exclude(pk=self.pk).exists():
-                code = f"{base}-{i}"
-                i += 1
-            self.sku = code
-        super().save(*args, **kwargs)
+from cadastro.models import Produto
 
 
-class ProdutoImagem(models.Model):
-    """Imagem associada ao produto, com ordenação."""
-    produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name='imagens')
-    imagem = models.ImageField(upload_to='produtos/galeria/')
-    alt = models.CharField(max_length=160, blank=True)
-    pos = models.PositiveIntegerField(default=0)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['pos', 'id']
+from cadastro.models import ProdutoImagem
 
 
-class ProdutoAtributo(models.Model):
-    """Definição de atributo de produto (texto/número/booleano)."""
-    class Tipo(models.TextChoices):
-        TEXTO = 'TEXT', 'Texto'
-        NUMERO = 'NUMBER', 'Número'
-        BOOLEANO = 'BOOL', 'Booleano'
-
-    codigo = models.CharField(max_length=40, unique=True)
-    nome = models.CharField(max_length=120)
-    tipo = models.CharField(max_length=10, choices=Tipo.choices, default=Tipo.TEXTO)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.codigo} - {self.nome}"
+from cadastro.models import ProdutoAtributo
 
 
-class ProdutoAtributoValor(models.Model):
-    """Valor de atributo aplicado a um produto."""
-    produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name='atributos_valores')
-    atributo = models.ForeignKey(ProdutoAtributo, on_delete=models.CASCADE, related_name='valores')
-    valor_texto = models.CharField(max_length=160, blank=True)
-    valor_numero = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
-    valor_bool = models.BooleanField(blank=True, null=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('produto', 'atributo')
-
-    def __str__(self):
-        return f"{self.produto.slug}:{self.atributo.codigo}"
-
-    @property
-    def valor(self):
-        """Retorna o valor coerente conforme tipo."""
-        if self.valor_texto:
-            return self.valor_texto
-        if self.valor_numero is not None:
-            return self.valor_numero
-        return bool(self.valor_bool)
+from cadastro.models import ProdutoAtributoValor
 
 
-class ProdutoVariacao(models.Model):
-    """Variação (SKU) de um produto com preço/custo e atributos."""
-    produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name='variacoes')
-    sku = models.CharField(max_length=64, unique=True)
-    nome = models.CharField(max_length=150, blank=True)
-    preco = models.DecimalField(max_digits=10, decimal_places=2)
-    custo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    disponivel = models.BooleanField(default=True)
-    atributos = models.JSONField(blank=True, null=True)
-    imagem = models.ImageField(upload_to='produtos/variacoes/', blank=True, null=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['sku']),
-        ]
-
-    def __str__(self):
-        return f"{self.produto.slug}:{self.sku}"
+from cadastro.models import ProdutoVariacao
 
 
 class Pedido(models.Model):
@@ -174,7 +70,7 @@ class Pedido(models.Model):
 class ItemPedido(models.Model):
     """Item do pedido com quantidade e preço unitário."""
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='itens')
-    produto = models.ForeignKey(Produto, on_delete=models.PROTECT, related_name='itens_pedido')
+    produto = models.ForeignKey('cadastro.Produto', on_delete=models.PROTECT, related_name='itens_pedido')
     quantidade = models.PositiveIntegerField()
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 

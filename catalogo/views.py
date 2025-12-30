@@ -10,7 +10,7 @@ from .filters import ProdutoFilterSet
 
 
 class ProdutoViewSet(viewsets.ModelViewSet):
-    queryset = Produto.objects.all()
+    queryset = Produto.objects.select_related('categoria').prefetch_related('imagens', 'atributos_valores__atributo', 'variacoes').all()
     serializer_class = ProdutoSerializer
     permission_classes = [IsAdminOrReadOnly]
     lookup_field = 'slug'
@@ -32,7 +32,7 @@ class CategoriaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def produtos(self, request, slug=None):
         categoria = self.get_object()
-        produtos = categoria.produtos.filter(disponivel=True)
+        produtos = categoria.produtos.filter(disponivel=True).select_related('categoria').prefetch_related('imagens', 'atributos_valores__atributo', 'variacoes')
         return Response(ProdutoSerializer(produtos, many=True).data)
 
 

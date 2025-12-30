@@ -23,7 +23,7 @@ from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from django.db import connection
 
 class ApiRoot(APIView):
@@ -42,10 +42,12 @@ class ApiRoot(APIView):
         return Response(data)
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/api/schema/swagger-ui/', permanent=False)),
     path('admin/', admin.site.urls),
     path('api/v1/', ApiRoot.as_view(), name='api-root'),
     path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-docs'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='api-redoc'),
     path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

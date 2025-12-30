@@ -53,7 +53,7 @@ class Produto(models.Model):
 
     class Meta:
         managed = False
-        db_table = "vendas_produto"
+        db_table = "cadastro_produto"
         verbose_name = "Produto"
         verbose_name_plural = "Produtos"
 
@@ -62,8 +62,8 @@ class Produto(models.Model):
             base_slug = slugify(self.nome)
             slug = base_slug
             idx = 1
-            from vendas.models import Produto as VProduto  # evitar colisão
-            while VProduto.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            from cadastro.models import Produto as CProduto  # evitar colisão
+            while CProduto.objects.filter(slug=slug).exclude(pk=self.pk).exists():
                 slug = f"{base_slug}-{idx}"
                 idx += 1
             self.slug = slug
@@ -71,8 +71,8 @@ class Produto(models.Model):
             base = slugify(self.nome)[:40]
             code = base or 'produto'
             i = 1
-            from vendas.models import Produto as VProduto
-            while VProduto.objects.filter(sku=code).exclude(pk=self.pk).exists():
+            from cadastro.models import Produto as CProduto
+            while CProduto.objects.filter(sku=code).exclude(pk=self.pk).exists():
                 code = f"{base}-{i}"
                 i += 1
             self.sku = code
@@ -91,7 +91,7 @@ class ProdutoImagem(models.Model):
 
     class Meta:
         managed = False
-        db_table = "vendas_produtoimagem"
+        db_table = "cadastro_produtoimagem"
         ordering = ['pos', 'id']
 
 
@@ -108,7 +108,7 @@ class ProdutoAtributo(models.Model):
 
     class Meta:
         managed = False
-        db_table = "vendas_produtoatributo"
+        db_table = "cadastro_produtoatributo"
 
 
 class ProdutoAtributoValor(models.Model):
@@ -121,7 +121,7 @@ class ProdutoAtributoValor(models.Model):
 
     class Meta:
         managed = False
-        db_table = "vendas_produtoatributovalor"
+        db_table = "cadastro_produtoatributovalor"
         unique_together = ('produto', 'atributo')
 
 
@@ -138,4 +138,4 @@ class ProdutoVariacao(models.Model):
 
     class Meta:
         managed = False
-        db_table = "vendas_produtovariacao"
+        db_table = "cadastro_produtovariacao"

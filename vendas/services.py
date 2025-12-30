@@ -10,7 +10,8 @@ from typing import List, Dict
 from django.db import models
 from django.db.models import QuerySet
 from django.core.exceptions import ValidationError
-from .models import Produto, ItemPedido, Pedido
+from cadastro.models import Produto
+from .models import ItemPedido, Pedido
 
 
 class ProdutoService:
