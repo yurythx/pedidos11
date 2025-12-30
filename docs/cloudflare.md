@@ -41,8 +41,11 @@ docker compose -f docker-compose.prod.yml up --build -d
 - Ambiente:
   - USE_X_FORWARDED_HOST=True
   - USE_PROXY_SSL_HEADER=True
-  - CSRF_TRUSTED_ORIGINS=https://seu.dominio.com
-  - ALLOWED_HOSTS=seu.dominio.com
+  - CSRF_TRUSTED_ORIGINS=https://backend.projetohavoc.shop
+  - ALLOWED_HOSTS=backend.projetohavoc.shop
+  - CORS_ALLOWED_ORIGINS=https://backend.projetohavoc.shop
+  - CSRF_COOKIE_DOMAIN=projetohavoc.shop
+  - SESSION_COOKIE_DOMAIN=projetohavoc.shop
 - Resultado:
   - Django respeita o Host/X-Forwarded-* e considera requisições como HTTPS.
 

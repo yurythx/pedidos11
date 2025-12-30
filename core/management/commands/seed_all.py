@@ -5,6 +5,10 @@ class Command(BaseCommand):
     help = "Aplica seeds de dados usando comandos específicos de cada app."
 
     def handle(self, *args, **options):
+        try:
+            call_command('seed_init')
+        except Exception:
+            self.stdout.write(self.style.WARNING('seed_init não disponível'))
         # contas financeiras
         try:
             call_command('seed_contas_financeiras')

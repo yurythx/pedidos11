@@ -37,6 +37,13 @@ python manage.py apply_rename_tables
 python manage.py rollback_tables
 ```
 
+## Seed Inicial (INIT)
+- Cria 5 clientes, 5 fornecedores, endereços, 5 produtos com preços, movimentos de estoque (IN/OUT) e fluxo de caixa básico, marcados como INIT:
+```bash
+python manage.py seed_init
+```
+- É idempotente: executa apenas se ainda não existir base INIT equivalente.
+
 ## Rollback e Reprocessamento
 - Crie comandos específicos para recomputar saldos/ledger quando necessário.
 - Evite lógica de negócios pesada dentro de migrações de esquema.
