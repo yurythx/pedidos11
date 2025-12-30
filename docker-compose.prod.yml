@@ -6,7 +6,7 @@ services:
       - POSTGRES_USER=pedidos11
       - POSTGRES_PASSWORD=pedidos11
     ports:
-      - "5432:5432"
+      - "54333:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
   web:
