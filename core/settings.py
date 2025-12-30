@@ -26,7 +26,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-+&kca9s=#2u6w*6s%1o3p#o@@5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h] or []
+ALLOWED_HOSTS = [h for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h] or ['localhost', '127.0.0.1', '192.168.29.71']
 
 
 # Application definition
@@ -192,7 +192,7 @@ if not DEBUG:
 
 # CORS configuration
 _cors = os.getenv('CORS_ALLOWED_ORIGINS', '')
-CORS_ALLOWED_ORIGINS = [o for o in _cors.split(',') if o] or ['http://localhost:3000']
+CORS_ALLOWED_ORIGINS = [o for o in _cors.split(',') if o] or ['http://localhost:3000', 'http://192.168.29.71:3000']
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_MINUTES', '30'))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_DAYS', '7'))),
@@ -229,6 +229,6 @@ if not DEBUG:
 USE_X_FORWARDED_HOST = os.getenv('USE_X_FORWARDED_HOST', 'False').lower() in ('1', 'true', 'yes')
 if os.getenv('USE_PROXY_SSL_HEADER', 'False').lower() in ('1', 'true', 'yes'):
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+CSRF_TRUSTED_ORIGINS = [o for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o] or ['http://192.168.29.71', 'https://backend.projetohavoc.shop', 'https://front.projetohavoc.shop']
 CSRF_COOKIE_DOMAIN = os.getenv('CSRF_COOKIE_DOMAIN', '') or None
 SESSION_COOKIE_DOMAIN = os.getenv('SESSION_COOKIE_DOMAIN', '') or None
