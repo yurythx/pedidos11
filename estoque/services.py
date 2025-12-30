@@ -1,3 +1,8 @@
+"""Serviços de Estoque.
+
+Calcula saldos e registra movimentos: entrada, saída e ajuste,
+garantindo validação de disponibilidade e atomicidade nas saídas.
+"""
 from typing import List, Dict
 from decimal import Decimal
 from django.db import transaction
@@ -7,8 +12,10 @@ from .models import StockMovement, Deposito, MotivoAjuste
 
 
 class EstoqueService:
+    """Operações de saldo e movimentações de estoque."""
     @staticmethod
     def saldo_produto(produto: Produto, deposito: Deposito | None = None) -> int:
+        """Calcula saldo do produto, opcional por depósito."""
         agg = 0
         qs = StockMovement.objects.filter(produto=produto)
         if deposito:
@@ -24,6 +31,7 @@ class EstoqueService:
 
     @staticmethod
     def verificar_disponibilidade(itens_payload: List[Dict]):
+        """Valida se há estoque suficiente para cada item do payload."""
         slugs = [i.get('produto') for i in itens_payload]
         produtos = {p.slug: p for p in Produto.objects.filter(slug__in=slugs)}
         for item in itens_payload:
@@ -35,6 +43,7 @@ class EstoqueService:
 
     @staticmethod
     def registrar_entrada(produto: Produto, quantidade: int, origem_slug: str | None = None, responsavel=None, observacao: str = "", deposito: Deposito | None = None):
+        """Registra entrada (IN) de estoque."""
         if quantidade <= 0:
             raise ValidationError("Quantidade de entrada deve ser > 0.")
         return StockMovement.objects.create(
@@ -49,6 +58,7 @@ class EstoqueService:
 
     @staticmethod
     def registrar_saida(pedido: Pedido, itens: List[ItemPedido], deposito: Deposito | None = None):
+        """Registra saídas (OUT) para itens do pedido, com validação e transação."""
         with transaction.atomic():
             for item in itens:
                 if EstoqueService.saldo_produto(item.produto, deposito=deposito) < item.quantidade:
@@ -65,6 +75,7 @@ class EstoqueService:
 
     @staticmethod
     def registrar_ajuste(produto: Produto, quantidade: int, origem_slug: str | None = None, responsavel=None, observacao: str = "", deposito: Deposito | None = None, motivo: MotivoAjuste | None = None):
+        """Registra ajuste (ADJUST) positivo/negativo com motivo opcional."""
         if quantidade == 0:
             raise ValidationError("Quantidade de ajuste não pode ser zero.")
         return StockMovement.objects.create(

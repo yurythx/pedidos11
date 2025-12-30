@@ -1,3 +1,4 @@
+"""Rotas da API de Auditoria."""
 from rest_framework.routers import SimpleRouter
 from .views import AuditLogViewSet
 

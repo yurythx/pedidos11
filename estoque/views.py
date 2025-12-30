@@ -1,3 +1,8 @@
+"""Views de Estoque (DRF ViewSets e ações customizadas).
+
+Exponem histórico, saldo, entrada, ajuste, transferência,
+além de CRUD de recebimentos com exportação CSV e estorno.
+"""
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,6 +19,7 @@ from .permissions import IsOperacaoOrAdmin
 
 
 class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
+    """Consulta de movimentos de estoque e ações operacionais."""
     queryset = StockMovement.objects.select_related('produto', 'pedido', 'responsavel')
     serializer_class = StockMovementSerializer
     permission_classes = [IsOperacaoOrAdmin]
@@ -21,6 +27,7 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'])
     def entrada(self, request):
+        """Registra entrada com idempotência e log."""
         produto_slug = request.data.get('produto')
         quantidade = int(request.data.get('quantidade', 0))
         observacao = request.data.get('observacao', '')
@@ -49,6 +56,7 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'])
     def ajuste(self, request):
+        """Registra ajuste (positivo/negativo) com idempotência e log."""
         produto_slug = request.data.get('produto')
         quantidade = int(request.data.get('quantidade', 0))
         observacao = request.data.get('observacao', '')
@@ -80,6 +88,7 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def saldo(self, request):
+        """Retorna saldo do produto (opcional por depósito)."""
         produto_slug = request.query_params.get('produto')
         deposito_slug = request.query_params.get('deposito')
         deposito = Deposito.objects.filter(slug=deposito_slug).first() if deposito_slug else None
@@ -89,6 +98,7 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def historico(self, request):
+        """Lista históricos filtrados por período, depósito e cost center."""
         produto_slug = request.query_params.get('produto')
         start = request.query_params.get('start')
         end = request.query_params.get('end')
@@ -119,6 +129,7 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def historico_csv(self, request):
+        """Exporta histórico filtrado em CSV."""
         produto_slug = request.query_params.get('produto')
         start = request.query_params.get('start')
         end = request.query_params.get('end')
@@ -146,6 +157,7 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'])
     def transferir(self, request):
+        """Transfere saldo entre depósitos com validações e transação."""
         produto_slug = request.data.get('produto')
         quantidade = int(request.data.get('quantidade', 0))
         origem_slug = request.data.get('origem')
@@ -191,16 +203,19 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class StockReceiptViewSet(viewsets.ModelViewSet):
+    """CRUD de recebimentos, CSV e estorno com movimentação reversa."""
     queryset = StockMovement.objects.none()
     serializer_class = StockReceiptSerializer
     permission_classes = [IsOperacaoOrAdmin]
     throttle_scope = 'estoque'
 
     def get_queryset(self):
+        """Lista recebimentos com relacionamentos carregados."""
         from .models import StockReceipt
         return StockReceipt.objects.select_related('responsavel', 'deposito', 'fornecedor_ref').prefetch_related('itens__produto').order_by('-criado_em')
 
     def create(self, request, *args, **kwargs):
+        """Cria recebimento com idempotência e log."""
         key = request.headers.get('Idempotency-Key')
         payload = request.data
         idem, created = ensure_idempotency(key, request.user if request.user.is_authenticated else None, 'estoque/recebimentos', payload)
@@ -221,6 +236,7 @@ class StockReceiptViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def csv(self, request):
+        """Exporta recebimentos filtrados em CSV."""
         from .models import StockReceipt
         fornecedor = request.query_params.get('fornecedor')
         deposito_slug = request.query_params.get('deposito')
@@ -246,6 +262,7 @@ class StockReceiptViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def estornar(self, request, pk=None):
+        """Estorna recebimento gerando saídas e marcando estornado_em."""
         from .models import StockReceipt
         from django.utils import timezone as djtz
         recibo = StockReceipt.objects.select_related('deposito').prefetch_related('itens__produto').get(pk=pk)

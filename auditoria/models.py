@@ -1,3 +1,7 @@
+"""Modelos de Auditoria.
+
+AuditLog registra ações e metadados; IdempotencyKey evita duplicidade de operações.
+"""
 from django.conf import settings
 from django.db import models
 from django.utils import timezone

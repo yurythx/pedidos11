@@ -1,3 +1,8 @@
+"""Views de Relatórios: faturamento, itens, categorias e estoque por depósito/motivo.
+
+Implementa caching via Django cache + ETag/Last-Modified para eficiência,
+além de versões CSV dos relatórios.
+"""
 from django.db.models import Sum, F
 from django.core.cache import cache
 from django.http import HttpResponse
@@ -12,11 +17,61 @@ from django.utils import timezone
 
 
 class RelatorioViewSet(viewsets.ViewSet):
+    """Endpoints de relatórios administrativos com throttling."""
     permission_classes = [permissions.IsAdminUser]
     throttle_scope = 'relatorios'
 
     @action(detail=False, methods=['get'])
+    def dashboard(self, request):
+        """Resumo geral: pedidos por status, faturamento à vista/a prazo, AR pendente e saldo de estoque."""
+        start = request.query_params.get('start')
+        end = request.query_params.get('end')
+        cost_center = request.query_params.get('cost_center')
+        qs_ped = Pedido.objects.all()
+        if start:
+            qs_ped = qs_ped.filter(data_criacao__gte=start)
+        if end:
+            qs_ped = qs_ped.filter(data_criacao__lte=end)
+        if cost_center:
+            qs_ped = qs_ped.filter(cost_center__codigo=cost_center)
+        total_pedidos = qs_ped.count()
+        por_status = {
+            s: qs_ped.filter(status=s).count()
+            for s, _ in Pedido.Status.choices
+        }
+        from django.db.models import Sum
+        le = LedgerEntry.objects.all()
+        if cost_center:
+            le = le.filter(cost_center__codigo=cost_center)
+        faturamento_total = qs_ped.aggregate(total=Sum('total'))['total'] or 0
+        faturamento_avista = le.filter(debit_account="Caixa", credit_account="Receita de Vendas").aggregate(Sum('valor'))['valor__sum'] or 0
+        faturamento_prazo = le.filter(debit_account="Clientes", credit_account="Receita de Vendas").aggregate(Sum('valor'))['valor__sum'] or 0
+        recebimentos_clientes = le.filter(debit_account="Caixa", credit_account="Clientes").aggregate(Sum('valor'))['valor__sum'] or 0
+        ar_outstanding = (faturamento_prazo or 0) - (recebimentos_clientes or 0)
+        mv = StockMovement.objects.all()
+        if start:
+            mv = mv.filter(criado_em__gte=start)
+        if end:
+            mv = mv.filter(criado_em__lte=end)
+        # saldo total de estoque (agregado)
+        in_sum = mv.filter(tipo=StockMovement.Tipo.IN).aggregate(Sum('quantidade'))['quantidade__sum'] or 0
+        out_sum = mv.filter(tipo=StockMovement.Tipo.OUT).aggregate(Sum('quantidade'))['quantidade__sum'] or 0
+        adj_sum = mv.filter(tipo=StockMovement.Tipo.ADJUST).aggregate(Sum('quantidade'))['quantidade__sum'] or 0
+        saldo_estoque_total = int(in_sum) - int(out_sum) + int(adj_sum)
+        data = {
+            'total_pedidos': total_pedidos,
+            'pedidos_por_status': por_status,
+            'faturamento_total': f"{faturamento_total:.2f}",
+            'faturamento_avista': f"{(faturamento_avista or 0):.2f}",
+            'faturamento_prazo': f"{(faturamento_prazo or 0):.2f}",
+            'ar_outstanding': f"{(ar_outstanding or 0):.2f}",
+            'saldo_estoque_total': saldo_estoque_total,
+        }
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
     def faturamento(self, request):
+        """Total faturado e contagem de pedidos, com cache e ETag."""
         start = request.query_params.get('start')
         end = request.query_params.get('end')
         cost_center = request.query_params.get('cost_center')
@@ -65,6 +120,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def itens(self, request):
+        """Top de itens vendidos, paginação simples e ETag."""
         start = request.query_params.get('start')
         end = request.query_params.get('end')
         cost_center = request.query_params.get('cost_center')
@@ -130,6 +186,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def faturamento_csv(self, request):
+        """CSV de faturamento por período e cost center."""
         start = request.query_params.get('start')
         end = request.query_params.get('end')
         cost_center = request.query_params.get('cost_center')
@@ -149,6 +206,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def itens_csv(self, request):
+        """CSV dos itens mais vendidos."""
         start = request.query_params.get('start')
         end = request.query_params.get('end')
         cost_center = request.query_params.get('cost_center')
@@ -175,6 +233,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def categorias_csv(self, request):
+        """CSV de agregação por categorias."""
         start = request.query_params.get('start')
         end = request.query_params.get('end')
         cost_center = request.query_params.get('cost_center')
@@ -200,6 +259,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def categorias(self, request):
+        """Agregação por categorias com cache e ETag."""
         start = request.query_params.get('start')
         end = request.query_params.get('end')
         cost_center = request.query_params.get('cost_center')
@@ -264,6 +324,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def estoque_depositos(self, request):
+        """Resumo de entradas/saídas/ajustes e saldo por depósito."""
         produto = request.query_params.get('produto')
         deposito_slug = request.query_params.get('deposito')
         start = request.query_params.get('start')
@@ -291,6 +352,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def estoque_depositos_csv(self, request):
+        """CSV de estoque por depósito."""
         produto = request.query_params.get('produto')
         deposito_slug = request.query_params.get('deposito')
         start = request.query_params.get('start')
@@ -322,6 +384,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def ajustes_motivo(self, request):
+        """Resumo de ajustes agregados por motivo."""
         produto = request.query_params.get('produto')
         deposito_slug = request.query_params.get('deposito')
         start = request.query_params.get('start')
@@ -346,6 +409,7 @@ class RelatorioViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def ajustes_motivo_csv(self, request):
+        """CSV de ajustes agregados por motivo."""
         produto = request.query_params.get('produto')
         deposito_slug = request.query_params.get('deposito')
         start = request.query_params.get('start')

@@ -1,3 +1,4 @@
+"""Rotas da API de Estoque (DRF Router e ViewSets auxiliares)."""
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import StockMovementViewSet, StockReceiptViewSet

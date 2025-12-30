@@ -1,9 +1,11 @@
+"""Modelos de Cadastro: Address, Supplier e Customer."""
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
 
 class Address(models.Model):
+    """Endereço com campos básicos e referência opcional."""
     logradouro = models.CharField(max_length=200)
     numero = models.CharField(max_length=50, blank=True)
     complemento = models.CharField(max_length=200, blank=True)
@@ -20,6 +22,7 @@ class Address(models.Model):
 
 
 class Supplier(models.Model):
+    """Fornecedor com dados de contato e slug único."""
     nome = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     email = models.EmailField(blank=True)
@@ -29,6 +32,7 @@ class Supplier(models.Model):
     criado_em = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
+        """Gera slug único baseado no nome."""
         if not self.slug:
             base = slugify(self.nome)
             slug = base
@@ -44,6 +48,7 @@ class Supplier(models.Model):
 
 
 class Customer(models.Model):
+    """Cliente com vínculo opcional a usuário do auth e slug único."""
     nome = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     email = models.EmailField(blank=True)
@@ -54,6 +59,7 @@ class Customer(models.Model):
     criado_em = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
+        """Gera slug único baseado no nome."""
         if not self.slug:
             base = slugify(self.nome)
             slug = base

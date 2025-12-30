@@ -36,6 +36,7 @@ class UserDefaultCostCenter(models.Model):
 
 class LedgerEntry(models.Model):
     pedido = models.ForeignKey('vendas.Pedido', on_delete=models.SET_NULL, blank=True, null=True, related_name='lancamentos_financeiros')
+    compra = models.ForeignKey('compras.PurchaseOrder', on_delete=models.SET_NULL, blank=True, null=True, related_name='lancamentos_financeiros')
     descricao = models.CharField(max_length=200)
     debit_account = models.CharField(max_length=60)
     credit_account = models.CharField(max_length=60)
@@ -48,3 +49,40 @@ class LedgerEntry(models.Model):
 
     def __str__(self):
         return f"{self.descricao} {self.valor}"
+
+
+class Title(models.Model):
+    class Tipo(models.TextChoices):
+        AP = 'AP', 'Contas a Pagar'
+        AR = 'AR', 'Contas a Receber'
+    class Status(models.TextChoices):
+        ABERTO = 'Aberto', 'Aberto'
+        QUITADO = 'Quitado', 'Quitado'
+        ATRASADO = 'Atrasado', 'Atrasado'
+    tipo = models.CharField(max_length=4, choices=Tipo.choices)
+    pedido = models.ForeignKey('vendas.Pedido', on_delete=models.SET_NULL, blank=True, null=True, related_name='titulos')
+    compra = models.ForeignKey('compras.PurchaseOrder', on_delete=models.SET_NULL, blank=True, null=True, related_name='titulos')
+    descricao = models.CharField(max_length=200, blank=True)
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_pago = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    due_date = models.DateField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ABERTO)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
+    cost_center = models.ForeignKey(CostCenter, on_delete=models.SET_NULL, blank=True, null=True, related_name='titulos')
+    def __str__(self):
+        return f"{self.tipo} {self.descricao} {self.valor}"
+
+
+class TitleParcel(models.Model):
+    class Status(models.TextChoices):
+        ABERTO = 'Aberto', 'Aberto'
+        QUITADO = 'Quitado', 'Quitado'
+        ATRASADO = 'Atrasado', 'Atrasado'
+    title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name='parcelas')
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_pago = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    due_date = models.DateField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ABERTO)
+    criado_em = models.DateTimeField(auto_now_add=True)
+

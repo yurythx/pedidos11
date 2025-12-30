@@ -22,14 +22,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework.schemas import get_schema_view
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from django.views.generic import TemplateView
 from django.db import connection
 
 class ApiRoot(APIView):
+    """Índice da API com links para módulos principais."""
     renderer_classes = [JSONRenderer, TemplateHTMLRenderer]
     template_name = 'api_index.html'
     def get(self, request):
+        """Retorna mapa de endpoints raiz."""
         data = {
             'vendas': request.build_absolute_uri('/api/v1/vendas/'),
             'estoque': request.build_absolute_uri('/api/v1/estoque/'),
@@ -42,18 +44,26 @@ class ApiRoot(APIView):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', ApiRoot.as_view(), name='api-root'),
-    path('api/schema/', get_schema_view(title='Pedidos11 API', version='v1'), name='api-schema'),
-    path('api/docs/', TemplateView.as_view(template_name='api_docs.html'), name='api-docs'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-docs'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='api-redoc'),
     path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/health/', TemplateView.as_view(template_name='api_health.html'), name='api-health'),
+    path('api/v1/catalogo/', include('catalogo.urls_api')),
     path('api/v1/vendas/', include('vendas.urls_api')),
     path('api/v1/cadastro/', include('cadastro.urls_api')),
     path('api/v1/estoque/', include('estoque.urls_api')),
     path('api/v1/financeiro/', include('financeiro.urls_api')),
+    path('api/v1/compras/', include('compras.urls_api')),
     path('api/v1/', include('relatorios.urls_api')),
     path('api/v1/', include('auditoria.urls_api')),
 ]
+
+# Admin branding
+admin.site.site_header = "Pedidos11 Administração"
+admin.site.site_title = "Pedidos11 Admin"
+admin.site.index_title = "Gestão de Sistema"
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

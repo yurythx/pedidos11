@@ -1,11 +1,18 @@
+"""Serializers de Vendas (DRF).
+
+Inclui validações de produto, atributos e criação de pedidos com:
+- idempotência de criação;
+- cálculo de total e verificação de estoque;
+- associação de centro de custo (explícito ou default do usuário);
+- integração financeira: receita à vista, venda a prazo com parcelas e COGS;
+- validação de parcelas (soma = total e due_date ISO).
+"""
 from decimal import Decimal
 from typing import List, Dict
 from django.db import transaction
 from rest_framework import serializers
-from .models import Categoria, Produto, Pedido, ItemPedido
-from .models import ProdutoImagem
-from .models import ProdutoAtributo, ProdutoAtributoValor, ProdutoVariacao
-from .services import PedidoService, ProdutoService
+from .models import Pedido, ItemPedido
+from .services import PedidoService
 from estoque.services import EstoqueService
 from financeiro.services import FinanceiroService
 from financeiro.models import CostCenter, UserDefaultCostCenter
@@ -13,58 +20,8 @@ from auditoria.utils import log_action, ensure_idempotency, payload_hash
 from django.utils import timezone
 
 
-class CategoriaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Categoria
-        fields = ['nome', 'slug']
-        read_only_fields = ['slug']
-
-
-class ProdutoSerializer(serializers.ModelSerializer):
-    categoria = serializers.SlugRelatedField(slug_field='slug', queryset=Categoria.objects.all())
-    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
-    sku = serializers.CharField(required=False, allow_blank=True)
-    ean = serializers.CharField(required=False, allow_blank=True)
-    unidade = serializers.ChoiceField(choices=[('UN','Unidade'),('CX','Caixa'),('KG','Kilograma'),('LT','Litro')], required=False)
-    marca = serializers.CharField(required=False, allow_blank=True)
-    ncm = serializers.CharField(required=False, allow_blank=True)
-    cfop = serializers.CharField(required=False, allow_blank=True)
-    atributos = serializers.JSONField(required=False)
-
-    class Meta:
-        model = Produto
-        fields = ['nome', 'slug', 'sku', 'ean', 'unidade', 'marca', 'ncm', 'cfop', 'atributos', 'categoria', 'categoria_nome', 'preco', 'custo', 'descricao', 'imagem', 'disponivel']
-        read_only_fields = ['slug']
-
-    def validate_preco(self, value: Decimal) -> Decimal:
-        if value < 0:
-            raise serializers.ValidationError("Preço não pode ser negativo.")
-        return value
-
-    def validate_custo(self, value: Decimal) -> Decimal:
-        if value < 0:
-            raise serializers.ValidationError("Custo não pode ser negativo.")
-        return value
-
-    def validate_ean(self, value: str) -> str:
-        if value and not value.isdigit():
-            raise serializers.ValidationError("EAN deve conter apenas dígitos.")
-        if value and not (8 <= len(value) <= 14):
-            raise serializers.ValidationError("EAN deve ter entre 8 e 14 dígitos.")
-        return value
-
-    def validate_ncm(self, value: str) -> str:
-        if value and (not value.isdigit() or len(value) != 8):
-            raise serializers.ValidationError("NCM deve ter 8 dígitos numéricos.")
-        return value
-
-    def validate_cfop(self, value: str) -> str:
-        if value and (not value.isdigit() or len(value) != 4):
-            raise serializers.ValidationError("CFOP deve ter 4 dígitos numéricos.")
-        return value
-
-
 class ItemPedidoReadSerializer(serializers.ModelSerializer):
+    """Serializa itens do pedido para leitura."""
     produto_nome = serializers.CharField(source='produto.nome', read_only=True)
     produto_slug = serializers.CharField(source='produto.slug', read_only=True)
 
@@ -73,57 +30,14 @@ class ItemPedidoReadSerializer(serializers.ModelSerializer):
         fields = ['produto_nome', 'produto_slug', 'quantidade', 'preco_unitario']
 
 
-class ProdutoImagemSerializer(serializers.ModelSerializer):
-    produto = serializers.SlugRelatedField(slug_field='slug', queryset=Produto.objects.all())
-
-    class Meta:
-        model = ProdutoImagem
-        fields = ['id', 'produto', 'imagem', 'alt', 'pos', 'criado_em']
-        read_only_fields = ['id', 'criado_em']
-
-
-class ProdutoAtributoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProdutoAtributo
-        fields = ['id', 'codigo', 'nome', 'tipo', 'criado_em']
-        read_only_fields = ['id', 'criado_em']
-
-
-class ProdutoAtributoValorSerializer(serializers.ModelSerializer):
-    produto = serializers.SlugRelatedField(slug_field='slug', queryset=Produto.objects.all())
-    atributo = serializers.SlugRelatedField(slug_field='codigo', queryset=ProdutoAtributo.objects.all())
-
-    class Meta:
-        model = ProdutoAtributoValor
-        fields = ['id', 'produto', 'atributo', 'valor_texto', 'valor_numero', 'valor_bool', 'criado_em']
-        read_only_fields = ['id', 'criado_em']
-
-    def validate(self, attrs):
-        atributo = attrs.get('atributo')
-        vt, vn, vb = attrs.get('valor_texto'), attrs.get('valor_numero'), attrs.get('valor_bool')
-        if atributo.tipo == ProdutoAtributo.Tipo.TEXTO and not vt:
-            raise serializers.ValidationError("Valor texto é obrigatório para atributo de texto.")
-        if atributo.tipo == ProdutoAtributo.Tipo.NUMERO and vn is None:
-            raise serializers.ValidationError("Valor numérico é obrigatório para atributo numérico.")
-        if atributo.tipo == ProdutoAtributo.Tipo.BOOLEANO and vb is None:
-            raise serializers.ValidationError("Valor booleano é obrigatório para atributo booleano.")
-        return attrs
-
-
-class ProdutoVariacaoSerializer(serializers.ModelSerializer):
-    produto = serializers.SlugRelatedField(slug_field='slug', queryset=Produto.objects.all())
-
-    class Meta:
-        model = ProdutoVariacao
-        fields = ['id', 'produto', 'sku', 'nome', 'preco', 'custo', 'disponivel', 'atributos', 'imagem', 'criado_em']
-        read_only_fields = ['id', 'criado_em']
-
-
 class PedidoSerializer(serializers.ModelSerializer):
+    """Serializa pedidos e processa criação com integrações de estoque e financeiro."""
     itens = ItemPedidoReadSerializer(many=True, read_only=True)
     cost_center = serializers.CharField(write_only=True, required=False, allow_blank=True)
     cost_center_codigo = serializers.CharField(source='cost_center.codigo', read_only=True)
     cost_center_nome = serializers.CharField(source='cost_center.nome', read_only=True)
+    payment_type = serializers.ChoiceField(choices=[('AVISTA','À vista'),('PRAZO','A prazo')], write_only=True, required=False)
+    parcelas = serializers.ListField(child=serializers.DictField(), write_only=True, required=False)
 
     # payload de criação: [{"produto": <slug>, "quantidade": <int>}, ...]
     itens_payload = serializers.ListField(
@@ -134,10 +48,11 @@ class PedidoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pedido
-        fields = ['slug', 'usuario', 'status', 'total', 'data_criacao', 'itens', 'itens_payload', 'cost_center', 'cost_center_codigo', 'cost_center_nome']
+        fields = ['slug', 'usuario', 'status', 'total', 'data_criacao', 'itens', 'itens_payload', 'cost_center', 'cost_center_codigo', 'cost_center_nome', 'payment_type', 'parcelas']
         read_only_fields = ['slug', 'usuario', 'total', 'data_criacao', 'status']
 
     def validate_itens_payload(self, value: List[Dict]) -> List[Dict]:
+        """Valida e normaliza itens do payload de criação."""
         if not value:
             raise serializers.ValidationError("Itens do pedido são obrigatórios.")
         normalized = []
@@ -155,6 +70,13 @@ class PedidoSerializer(serializers.ModelSerializer):
         return normalized
 
     def create(self, validated_data):
+        """Cria pedido com idempotência, movimenta estoque e registra lançamentos financeiros.
+
+        - Valida usuário, itens e centro de custo/default;
+        - Calcula total e valida parcelas (se a prazo);
+        - Registra saída de estoque e razão: AR/AP/receita e COGS;
+        - Retorna pedido criado.
+        """
         request = self.context.get('request')
         usuario = request.user if request and request.user and request.user.is_authenticated else None
         if not usuario:
@@ -162,6 +84,7 @@ class PedidoSerializer(serializers.ModelSerializer):
 
         itens_payload = validated_data.pop('itens_payload')
         cost_center_code = validated_data.pop('cost_center', None)
+        payment_type = validated_data.pop('payment_type', 'AVISTA')
         key = request.headers.get('Idempotency-Key') if request else None
         idem, created = ensure_idempotency(key, usuario, 'pedido/create', {'itens': itens_payload, 'cost_center': cost_center_code})
         if idem and not created:
@@ -178,6 +101,18 @@ class PedidoSerializer(serializers.ModelSerializer):
             pedido = Pedido.objects.create(usuario=usuario)
             itens_objs: List[ItemPedido] = PedidoService.criar_itens(pedido, itens_payload)
             total = PedidoService.calcular_total(itens_objs)
+            parcelas = validated_data.get('parcelas', None)
+            if payment_type == 'PRAZO' and parcelas:
+                from decimal import Decimal as D
+                import datetime
+                soma = sum(D(str(p.get('valor'))) for p in parcelas)
+                try:
+                    for p in parcelas:
+                        datetime.date.fromisoformat(p.get('due_date'))
+                except Exception:
+                    raise serializers.ValidationError("due_date inválida em parcelas.")
+                if soma != total:
+                    raise serializers.ValidationError("Soma das parcelas difere do total do pedido.")
             pedido.total = total
             if cost_center_code:
                 cc = CostCenter.objects.filter(codigo=cost_center_code).first()
@@ -190,7 +125,10 @@ class PedidoSerializer(serializers.ModelSerializer):
                     pedido.cost_center = mapping.cost_center
             pedido.save(update_fields=['total', 'cost_center'] if cost_center_code else ['total'])
             EstoqueService.registrar_saida(pedido, itens_objs)
-            FinanceiroService.registrar_receita_venda(pedido, cost_center_code=cost_center_code)
+            if payment_type == 'PRAZO':
+                FinanceiroService.registrar_venda_a_prazo(pedido, cost_center_code=cost_center_code, parcelas=parcelas)
+            else:
+                FinanceiroService.registrar_receita_venda(pedido, cost_center_code=cost_center_code)
             FinanceiroService.registrar_custo_venda(pedido, cost_center_code=cost_center_code)
             log_action(usuario, 'create', 'Pedido', pedido.slug, {'total': str(total), 'itens_count': len(itens_objs), 'cost_center': pedido.cost_center.codigo if pedido.cost_center else None})
         return pedido

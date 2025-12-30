@@ -1,6 +1,12 @@
 from django.contrib import admin
+"""Admin de Vendas: gestão de produtos, categorias e pedidos.
+
+Inclui actions para disponibilidade, status de pedidos, recalcular totais,
+gerar títulos AR e exportar CSV de produtos/pedidos.
+"""
 from django.utils.safestring import mark_safe
-from .models import Categoria, Produto, Pedido, ItemPedido
+from financeiro.services import FinanceiroService
+from .models import Categoria, Produto, Pedido, ItemPedido, ProdutoImagem, ProdutoAtributo, ProdutoAtributoValor, ProdutoVariacao
 
 
 @admin.action(description="Marcar produtos como disponíveis")
@@ -16,11 +22,24 @@ def marcar_indisponiveis(modeladmin, request, queryset):
 
 
 class ProdutoAdmin(admin.ModelAdmin):
+    """Admin para Produto com preview de imagem e ações de disponibilidade."""
     list_display = ("nome", "categoria", "preco", "disponivel", "slug", "imagem_preview")
     list_filter = ("categoria", "disponivel")
     search_fields = ("nome", "descricao")
     readonly_fields = ("slug", "imagem_preview")
     actions = [marcar_disponiveis, marcar_indisponiveis]
+
+    @admin.action(description="Exportar produtos selecionados em CSV")
+    def exportar_produtos_csv(self, request, queryset):
+        from django.http import HttpResponse
+        rows = ["nome,categoria,preco,disponivel,slug"]
+        for pr in queryset.select_related("categoria"):
+            rows.append(f"{pr.nome},{pr.categoria.nome if pr.categoria else ''},{pr.preco:.2f},{pr.disponivel},{pr.slug}")
+        csv = "\n".join(rows) + "\n"
+        resp = HttpResponse(csv, content_type="text/csv")
+        resp['Content-Disposition'] = 'attachment; filename=\"produtos.csv\"'
+        return resp
+    actions = [marcar_disponiveis, marcar_indisponiveis, exportar_produtos_csv]
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("categoria")
@@ -33,6 +52,7 @@ class ProdutoAdmin(admin.ModelAdmin):
 
 
 class ProdutoInline(admin.TabularInline):
+    """Inline para exibir/editar produtos dentro da categoria."""
     model = Produto
     extra = 0
     fields = ("nome", "preco", "disponivel")
@@ -40,6 +60,7 @@ class ProdutoInline(admin.TabularInline):
 
 
 class CategoriaAdmin(admin.ModelAdmin):
+    """Admin para Categoria com total de produtos e inline de produtos."""
     list_display = ("nome", "slug", "total_produtos")
     search_fields = ("nome",)
     readonly_fields = ("slug",)
@@ -50,8 +71,7 @@ class CategoriaAdmin(admin.ModelAdmin):
     total_produtos.short_description = "Qtde Produtos"
 
 
-admin.site.register(Produto, ProdutoAdmin)
-admin.site.register(Categoria, CategoriaAdmin)
+ 
 
 
 @admin.action(description="Marcar pedidos como Pendente")
@@ -90,6 +110,7 @@ def recalcular_totais(modeladmin, request, queryset):
 
 
 class ItemPedidoInline(admin.TabularInline):
+    """Inline para itens dentro do Pedido."""
     model = ItemPedido
     extra = 0
     fields = ("produto", "quantidade", "preco_unitario")
@@ -98,6 +119,7 @@ class ItemPedidoInline(admin.TabularInline):
 
 
 class PedidoAdmin(admin.ModelAdmin):
+    """Admin de Pedido com ações de status, totais, AR e exportação CSV."""
     list_display = ("slug", "usuario", "status", "total", "data_criacao")
     list_filter = ("status", "data_criacao")
     search_fields = ("usuario__username", "slug")
@@ -105,5 +127,36 @@ class PedidoAdmin(admin.ModelAdmin):
     actions = [marcar_pendente, marcar_preparando, marcar_enviado, marcar_entregue, recalcular_totais]
     inlines = [ItemPedidoInline]
 
+    @admin.action(description="Gerar Título AR (a receber)")
+    def gerar_titulo_ar(self, request, queryset):
+        count = 0
+        for pedido in queryset:
+            FinanceiroService.registrar_venda_a_prazo(pedido)
+            count += 1
+        self.message_user(request, f"Títulos AR gerados/garantidos para {count} pedido(s).")
+    actions = [marcar_pendente, marcar_preparando, marcar_enviado, marcar_entregue, recalcular_totais, gerar_titulo_ar]
+
+    @admin.action(description="Exportar pedidos selecionados em CSV")
+    def exportar_pedidos_csv(self, request, queryset):
+        from django.http import HttpResponse
+        rows = ["slug,usuario,status,total,data_criacao"]
+        for p in queryset.select_related("usuario"):
+            rows.append(f"{p.slug},{p.usuario.username if p.usuario else ''},{p.status},{p.total:.2f},{p.data_criacao.isoformat()}")
+        csv = "\n".join(rows) + "\n"
+        resp = HttpResponse(csv, content_type="text/csv")
+        resp['Content-Disposition'] = 'attachment; filename=\"pedidos.csv\"'
+        return resp
+    actions = [marcar_pendente, marcar_preparando, marcar_enviado, marcar_entregue, recalcular_totais, gerar_titulo_ar, exportar_pedidos_csv]
+
+
 
 admin.site.register(Pedido, PedidoAdmin)
+
+
+class ItemPedidoAdmin(admin.ModelAdmin):
+    list_display = ("pedido", "produto", "quantidade", "preco_unitario")
+    search_fields = ("pedido__slug", "produto__slug")
+    raw_id_fields = ("pedido", "produto")
+
+
+admin.site.register(ItemPedido, ItemPedidoAdmin)

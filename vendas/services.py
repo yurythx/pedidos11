@@ -1,3 +1,10 @@
+"""Serviços de Vendas.
+
+Fornecem utilitários para consulta de produtos e construção de pedidos:
+- filtro e busca de produtos disponíveis;
+- validação de disponibilidade no payload;
+- criação de itens e cálculo de total.
+"""
 from decimal import Decimal
 from typing import List, Dict
 from django.db import models
@@ -7,6 +14,7 @@ from .models import Produto, ItemPedido, Pedido
 
 
 class ProdutoService:
+    """Consultas e filtros de produtos disponíveis."""
     @staticmethod
     def disponiveis() -> QuerySet[Produto]:
         return Produto.objects.filter(disponivel=True)
@@ -17,6 +25,7 @@ class ProdutoService:
 
     @staticmethod
     def filtrar(categoria_slug: str | None = None, texto: str | None = None) -> QuerySet[Produto]:
+        """Filtra produtos por categoria e texto (nome/SKU/EAN)."""
         qs = ProdutoService.disponiveis()
         if categoria_slug:
             qs = qs.filter(categoria__slug=categoria_slug)
@@ -26,8 +35,10 @@ class ProdutoService:
 
 
 class PedidoService:
+    """Construção e validação de pedidos."""
     @staticmethod
     def validate_disponibilidade(itens_payload: List[Dict]):
+        """Garante que todos os produtos do payload estão disponíveis."""
         slugs = [i.get('produto') for i in itens_payload]
         produtos = Produto.objects.filter(slug__in=slugs, disponivel=True)
         if produtos.count() != len(slugs):
@@ -35,6 +46,7 @@ class PedidoService:
 
     @staticmethod
     def criar_itens(pedido: Pedido, itens_payload: List[Dict]) -> List[ItemPedido]:
+        """Cria itens do pedido com preço atual do produto."""
         itens: List[ItemPedido] = []
         produtos_map = {p.slug: p for p in Produto.objects.filter(slug__in=[i.get('produto') for i in itens_payload])}
         for item in itens_payload:
@@ -52,4 +64,5 @@ class PedidoService:
 
     @staticmethod
     def calcular_total(itens: List[ItemPedido]) -> Decimal:
+        """Soma subtotais de itens para total do pedido."""
         return sum((i.subtotal() for i in itens), Decimal('0.00'))

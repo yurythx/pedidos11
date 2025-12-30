@@ -56,10 +56,10 @@ class APITests(TestCase):
 
     def test_criacao_pedido_fluxo_completo(self):
         self.auth()
-        Account.objects.create(nome="Caixa", codigo="1.1.1", tipo=Account.Tipo.ATIVO)
-        Account.objects.create(nome="Receita de Vendas", codigo="4.1.1", tipo=Account.Tipo.RECEITA)
-        Account.objects.create(nome="Estoque", codigo="1.2.3", tipo=Account.Tipo.ATIVO)
-        Account.objects.create(nome="Custo das Vendas", codigo="3.1.1", tipo=Account.Tipo.DESPESA)
+        Account.objects.get_or_create(nome="Caixa", defaults={"codigo": "1.1.1", "tipo": Account.Tipo.ATIVO})
+        Account.objects.get_or_create(nome="Receita de Vendas", defaults={"codigo": "4.1.1", "tipo": Account.Tipo.RECEITA})
+        Account.objects.get_or_create(nome="Estoque", defaults={"codigo": "1.2.3", "tipo": Account.Tipo.ATIVO})
+        Account.objects.get_or_create(nome="Custo das Vendas", defaults={"codigo": "3.1.1", "tipo": Account.Tipo.DESPESA})
         CostCenter.objects.create(nome="Loja 1", codigo="LJ1")
         url = reverse("pedido-list")
         payload = {
@@ -87,10 +87,10 @@ class APITests(TestCase):
 
     def test_pedido_usa_cost_center_padrao(self):
         self.auth()
-        Account.objects.create(nome="Caixa", codigo="1.1.1", tipo=Account.Tipo.ATIVO)
-        Account.objects.create(nome="Receita de Vendas", codigo="4.1.1", tipo=Account.Tipo.RECEITA)
-        Account.objects.create(nome="Estoque", codigo="1.2.3", tipo=Account.Tipo.ATIVO)
-        Account.objects.create(nome="Custo das Vendas", codigo="3.1.1", tipo=Account.Tipo.DESPESA)
+        Account.objects.get_or_create(nome="Caixa", defaults={"codigo": "1.1.1", "tipo": Account.Tipo.ATIVO})
+        Account.objects.get_or_create(nome="Receita de Vendas", defaults={"codigo": "4.1.1", "tipo": Account.Tipo.RECEITA})
+        Account.objects.get_or_create(nome="Estoque", defaults={"codigo": "1.2.3", "tipo": Account.Tipo.ATIVO})
+        Account.objects.get_or_create(nome="Custo das Vendas", defaults={"codigo": "3.1.1", "tipo": Account.Tipo.DESPESA})
         centro = CostCenter.objects.create(nome="Loja 2", codigo="LJ2")
         from financeiro.models import UserDefaultCostCenter
         UserDefaultCostCenter.objects.create(user=self.user, cost_center=centro)
@@ -154,21 +154,21 @@ class ProdutoFilterOrderingTests(TestCase):
         self.d = Produto.objects.create(nome="X-Salada", categoria=self.cat_burgers, preco=Decimal("22.00"), disponivel=False)
 
     def test_filtra_por_categoria_slug(self):
-        url = reverse("produto-list")
+        url = reverse("catalogo-produto-list")
         resp = self.client.get(url, {"categoria": self.cat_bebidas.slug})
         self.assertEqual(resp.status_code, 200)
         nomes = [i["nome"] for i in resp.data]
         self.assertListEqual(sorted(nomes), ["Suco", "Água"])
 
     def test_filtra_por_texto(self):
-        url = reverse("produto-list")
+        url = reverse("catalogo-produto-list")
         resp = self.client.get(url, {"q": "burger"})
         self.assertEqual(resp.status_code, 200)
         nomes = [i["nome"] for i in resp.data]
         self.assertListEqual(nomes, ["X-Burger"])
 
     def test_ordena_por_preco_asc_desc(self):
-        url = reverse("produto-list")
+        url = reverse("catalogo-produto-list")
         resp_asc = self.client.get(url, {"categoria": self.cat_bebidas.slug, "ordering": "preco"})
         self.assertEqual(resp_asc.status_code, 200)
         precos_asc = [Decimal(i["preco"]) for i in resp_asc.data]
@@ -180,7 +180,7 @@ class ProdutoFilterOrderingTests(TestCase):
         self.assertListEqual(precos_desc, [Decimal("8.00"), Decimal("5.00")])
 
     def test_categoria_action_produtos_retorna_disponiveis(self):
-        url = reverse("categoria-produtos", kwargs={"slug": self.cat_burgers.slug})
+        url = reverse("catalogo-categoria-produtos", kwargs={"slug": self.cat_burgers.slug})
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
         nomes = [i["nome"] for i in resp.data]
@@ -188,13 +188,13 @@ class ProdutoFilterOrderingTests(TestCase):
 
     def test_alias_produtos_lista_e_detalhe(self):
         # Lista via alias
-        url = reverse("produto-list")
+        url = reverse("catalogo-produto-list")
         resp = self.client.get(url, {"categoria": self.cat_bebidas.slug})
         self.assertEqual(resp.status_code, 200)
         nomes = [i["nome"] for i in resp.data]
         self.assertListEqual(sorted(nomes), ["Suco", "Água"])
         # Detalhe via alias
-        detail = self.client.get(reverse("produto-detail", kwargs={"slug": self.a.slug}))
+        detail = self.client.get(reverse("catalogo-produto-detail", kwargs={"slug": self.a.slug}))
         self.assertEqual(detail.status_code, 200)
         self.assertEqual(detail.data["slug"], self.a.slug)
 
@@ -207,7 +207,7 @@ class ProdutoCreateValidationTests(TestCase):
         self.cat = Categoria.objects.create(nome="Bebidas")
 
     def test_criar_produto_admin(self):
-        url = reverse("produto-list")
+        url = reverse("catalogo-produto-list")
         payload = {
             "nome": "Suco de Uva",
             "categoria": self.cat.slug,
@@ -232,7 +232,7 @@ class ProdutoCreateValidationTests(TestCase):
         self.assertEqual(resp.data.get("cfop"), "5102")
 
     def test_valida_ean_invalido(self):
-        url = reverse("produto-list")
+        url = reverse("catalogo-produto-list")
         payload = {"nome": "Água", "categoria": self.cat.slug, "preco": "5.00", "custo": "3.00", "ean": "X123"}
         resp = self.client.post(url, payload, format="json")
         self.assertEqual(resp.status_code, 400)
@@ -274,7 +274,7 @@ class ProdutoCreateValidationTests(TestCase):
 
     def test_produto_imagens_crud_admin(self):
         p = Produto.objects.create(nome="Agua", categoria=self.cat, preco=Decimal("5.00"), disponivel=True)
-        url = reverse("produto-imagem-list")
+        url = reverse("catalogo-produto-imagem-list")
         from django.core.files.uploadedfile import SimpleUploadedFile
         img = SimpleUploadedFile("f.png", b"\x89PNG\r\n\x1a\n\x00\x00\x00IHDR", content_type="image/png")
         resp = self.client.post(url, {"produto": p.slug, "imagem": img, "alt": "Foto", "pos": 1}, format="multipart")
@@ -285,16 +285,16 @@ class ProdutoCreateValidationTests(TestCase):
 
     def test_catalogo_atributos_e_variacoes(self):
         # cria atributo e valor
-        url_attr = reverse("produto-atributo-list")
+        url_attr = reverse("catalogo-produto-atributo-list")
         resp_attr = self.client.post(url_attr, {"codigo": "COR", "nome": "Cor", "tipo": "TEXT"}, format="json")
         self.assertEqual(resp_attr.status_code, 201)
         attr_codigo = resp_attr.data["codigo"]
         p = Produto.objects.create(nome="Refri", categoria=self.cat, preco=Decimal("7.00"), disponivel=True)
-        url_val = reverse("produto-atributo-valor-list")
+        url_val = reverse("catalogo-produto-atributo-valor-list")
         resp_val = self.client.post(url_val, {"produto": p.slug, "atributo": attr_codigo, "valor_texto": "Cola"}, format="json")
         self.assertEqual(resp_val.status_code, 201)
         # cria variação
-        url_var = reverse("produto-variacao-list")
+        url_var = reverse("catalogo-produto-variacao-list")
         resp_var = self.client.post(url_var, {"produto": p.slug, "sku": "refri-cola-1l", "nome": "Refri Cola 1L", "preco": "8.00", "custo": "5.00", "disponivel": True}, format="json")
         self.assertEqual(resp_var.status_code, 201)
         list_var = self.client.get(url_var, {"produto": p.slug})
