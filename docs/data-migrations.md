@@ -38,11 +38,22 @@ python manage.py rollback_tables
 ```
 
 ## Seed Inicial (INIT)
-- Cria 5 clientes, 5 fornecedores, endereços, 5 produtos com preços, movimentos de estoque (IN/OUT) e fluxo de caixa básico, marcados como INIT:
+- Cria 20 clientes, 20 fornecedores, 20 endereços, 20 categorias e 20 produtos com preços/custos, movimentos de estoque (IN/OUT) e fluxo de caixa básico, marcados como INIT:
 ```bash
 python manage.py seed_init
 ```
-- É idempotente: executa apenas se ainda não existir base INIT equivalente.
+- Fluxo consistente:
+  - Compras: 20 ordens (3 itens cada) + 20 recebimentos; cada item gera movimento IN vinculado ao PO.
+  - Vendas: 20 pedidos (2 itens cada); cada item gera movimento OUT vinculado ao pedido.
+  - Financeiro: lançamentos para compras/vendas e títulos AP/AR.
+- Idempotente: evita duplicação quando dados INIT já existem.
+
+## Rename Categoria (vendas_categoria → cadastro_categoria)
+- Se sua base ainda tiver a tabela antiga de categorias:
+```bash
+python manage.py migrate cadastro 0004
+```
+- Essa migração renomeia vendas_categoria para cadastro_categoria para alinhar com os modelos atuais.
 
 ## Rollback e Reprocessamento
 - Crie comandos específicos para recomputar saldos/ledger quando necessário.

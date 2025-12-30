@@ -40,6 +40,22 @@ docker compose -f docker-compose.prod.yml up --build -d
 - O entrypoint executa seed_init após migrate quando RUN_SEED_INIT=True.
 - Idempotente: não duplica dados se já existir base INIT.
 
+## Grupos de Usuários
+- Criar grupos e permissões padrão e adicionar usuário suporte ao grupo Admin:
+```bash
+docker compose -f docker-compose.prod.yml run --rm web python manage.py seed_groups
+```
+- Grupos criados: Admin, Cadastro, Catálogo, Vendas, Estoque, Compras, Financeiro, Relatórios.
+
+## Correção de Categorias (erro 500)
+- Se o endpoint de categorias responder 500 por tabela antiga:
+  - Aplique o rename:
+    ```bash
+    docker compose -f docker-compose.prod.yml run --rm web python manage.py migrate cadastro 0004
+    ```
+  - O modelo de categorias do catálogo aponta para cadastro_categoria:
+    - [catalogo/models.py](../catalogo/models.py)
+
 ## Migrações e Estáticos
 - São aplicados automaticamente pelo entrypoint
 - STATIC_ROOT: staticfiles
