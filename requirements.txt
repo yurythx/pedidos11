@@ -1,16 +1,24 @@
-asgiref==3.11.0
-Django==5.2.9
-django-cors-headers==4.9.0
-django-filter==25.2
-djangorestframework==3.16.1
-djangorestframework_simplejwt==5.5.1
-pillow==12.0.0
-PyJWT==2.10.1
-sqlparse==0.5.5
-tzdata==2025.3
-pyyaml
-uritemplate
-drf-spectacular
-gunicorn
-psycopg2-binary
-whitenoise==6.7.0
+# ProjetoRavenna - Python Dependencies
+
+# Django
+Django>=5.0,<5.1
+psycopg2-binary>=2.9.9  # PostgreSQL adapter
+
+# Django Rest Framework
+djangorestframework>=3.14.0
+drf-spectacular>=0.27.0  # API Documentation (Swagger/ReDoc)
+django-filter>=23.5  # Filtering for DRF
+djangorestframework-simplejwt>=5.3.0  # JWT Authentication
+
+# CORS
+django-cors-headers>=4.3.1
+
+# Image processing (for logo, fotos)
+Pillow>=10.1.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Development only (optional)
+django-debug-toolbar>=4.2.0  # Debug panel
+ipython>=8.18.1  # Better shell
