@@ -1,31 +1,24 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
-*.class
-*.so
-.Python
+*$py.class
 venv/
 env/
-ENV/
-
-# Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-/media
-/staticfiles
-
-# Environment
 .env
-.env.local
+db.sqlite3
+*.log
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+coverage/
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
+.trae/
 
 # OS
 .DS_Store

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe>
+      <ide>
+        <nNF>12345</nNF>
+        <serie>1</serie>
+      </ide>
+      <emit>
+        <CNPJ>12345678000199</CNPJ>
+        <xNome>Fornecedor Teste LTDA</xNome>
+      </emit>
+      <det nItem="1">
+        <prod>
+          <cProd>TEST001</cProd>
+          <cEAN>7891000100045</cEAN>
+          <xProd>Produto Teste CX/12</xProd>
+          <uCom>CX</uCom>
+          <qCom>5</qCom>
+          <vUnCom>48.00</vUnCom>
+        </prod>
+        <rastro>
+          <nLote>LOTE2026</nLote>
+          <dVal>2026-12-31</dVal>
+        </rastro>
+      </det>
+    </infNFe>
+  </NFe>
+</nfeProc>
+

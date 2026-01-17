@@ -1,0 +1,29 @@
+# @name obter_token
+POST http://localhost:8000/api/auth/token/
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+###
+# @name produtos
+GET http://localhost:8000/api/produtos/?page_size=20&search=coca
+Authorization: Bearer {{access}}
+
+###
+# @name categorias
+GET http://localhost:8000/api/categorias/
+Authorization: Bearer {{access}}
+
+###
+# @name resumo_dia
+GET http://localhost:8000/api/dashboard/resumo-dia/
+Authorization: Bearer {{access}}
+
+###
+# Observação: para upload multipart do XML NFe, prefira usar Postman ou curl.
+# Exemplo curl:
+# curl -H "Authorization: Bearer <token>" -F "arquivo=@nfe.xml" http://localhost:8000/api/nfe/importacao/upload-xml/
+

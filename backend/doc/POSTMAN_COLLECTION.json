@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "Projeto Nix API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "b3c7d9a8-9a1b-4f65-9b9a-000000000001"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Obter Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/token/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "token"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/token/refresh/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "token", "refresh"] },
+            "body": { "mode": "raw", "raw": "{\n  \"refresh\": \"{{refresh}}\"\n}" }
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/token/verify/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "token", "verify"] },
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{access}}\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo",
+      "item": [
+        {
+          "name": "Listar Produtos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access}}" }],
+            "url": { "raw": "{{baseUrl}}/api/produtos/?page_size=20&search=coca", "host": ["{{baseUrl}}"], "path": ["api", "produtos"], "query": [{ "key": "page_size", "value": "20" }, { "key": "search", "value": "coca" }] }
+          }
+        },
+        {
+          "name": "Listar Categorias",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access}}" }],
+            "url": { "raw": "{{baseUrl}}/api/categorias/", "host": ["{{baseUrl}}"], "path": ["api", "categorias"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NFe",
+      "item": [
+        {
+          "name": "Upload XML (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access}}" }],
+            "url": { "raw": "{{baseUrl}}/api/nfe/importacao/upload-xml/", "host": ["{{baseUrl}}"], "path": ["api", "nfe", "importacao", "upload-xml"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "arquivo", "type": "file", "src": [] }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Confirmar Importação",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/nfe/importacao/confirmar/", "host": ["{{baseUrl}}"], "path": ["api", "nfe", "importacao", "confirmar"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deposito_id\": \"<uuid-deposito>\",\n  \"numero_nfe\": \"12345\",\n  \"serie_nfe\": \"1\",\n  \"fornecedor\": { \"cnpj\": \"12345678000199\", \"nome\": \"Fornecedor Teste LTDA\" },\n  \"itens\": [\n    {\n      \"codigo_xml\": \"TEST001\",\n      \"produto_id\": \"<uuid-produto>\",\n      \"fator_conversao\": 12,\n      \"qtd_xml\": 5,\n      \"preco_custo\": 48.00,\n      \"lote\": { \"codigo\": \"LOTE2026\", \"validade\": \"2026-12-31\" }\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboards",
+      "item": [
+        {
+          "name": "Resumo do Dia",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access}}" }],
+            "url": { "raw": "{{baseUrl}}/api/dashboard/resumo-dia/", "host": ["{{baseUrl}}"], "path": ["api", "dashboard", "resumo-dia"] }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "access", "value": "" },
+    { "key": "refresh", "value": "" }
+  ]
+}
+
