@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { request } from '../../src/lib/http/request'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../src/components/ui/Table'
+import { Search } from 'lucide-react'
 
 type Saldo = {
   id: string
@@ -45,51 +47,91 @@ export default function SaldosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const saldos = data ?? []
+
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Saldos</h1>
-      <div className="flex gap-2 mb-3">
-        <input
-          placeholder="Filtro por SKU do produto"
-          value={produtoSku}
-          onChange={(e) => setProdutoSku(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <input
-          placeholder="Filtro por nome do depósito"
-          value={depositoNome}
-          onChange={(e) => setDepositoNome(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <button onClick={load} className="bg-black text-white rounded px-3 py-2">Filtrar</button>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="heading-1">Gestão de Estoque</h1>
+          <p className="text-gray-500 mt-1">Visão geral dos saldos por depósito</p>
+        </div>
       </div>
-      {loading && <div>Carregando saldos...</div>}
-      {error && <div className="text-red-600">{error}</div>}
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+          <label className="label">Produto (SKU)</label>
+          <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+             <input
+              placeholder="Buscar por SKU..."
+              value={produtoSku}
+              onChange={(e) => setProdutoSku(e.target.value)}
+              className="input pl-10"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="label">Depósito</label>
+          <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+             <input
+              placeholder="Buscar por nome do depósito..."
+              value={depositoNome}
+              onChange={(e) => setDepositoNome(e.target.value)}
+              className="input pl-10"
+            />
+          </div>
+        </div>
+        <button onClick={load} className="btn btn-secondary w-full">
+           Filtrar
+        </button>
+      </div>
+
+      {loading && <div className="text-center py-8 text-gray-500">Carregando saldos...</div>}
+      {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl mb-4">{error}</div>}
+
       {!loading && !error && (
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-2 border">Produto</th>
-              <th className="text-left p-2 border">SKU</th>
-              <th className="text-left p-2 border">Depósito</th>
-              <th className="text-left p-2 border">Quantidade</th>
-              <th className="text-left p-2 border">Disponível</th>
-              <th className="text-left p-2 border">Atualizado em</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data ?? []).map((s) => (
-              <tr key={s.id}>
-                <td className="p-2 border">{s.produto_nome}</td>
-                <td className="p-2 border">{s.produto_sku ?? '-'}</td>
-                <td className="p-2 border">{s.deposito_nome}</td>
-                <td className="p-2 border">{s.quantidade}</td>
-                <td className="p-2 border">{s.disponivel}</td>
-                <td className="p-2 border">{new Date(s.updated_at).toLocaleString('pt-BR')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Produto</TableHead>
+              <TableHead>Depósito</TableHead>
+              <TableHead>Quantidade</TableHead>
+              <TableHead>Disponível</TableHead>
+              <TableHead>Atualizado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {saldos.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  Nenhum saldo encontrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              saldos.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell>
+                    <div className="font-medium text-gray-900">{s.produto_nome}</div>
+                    {s.produto_sku && <div className="text-xs text-gray-500 mt-0.5">SKU: {s.produto_sku}</div>}
+                  </TableCell>
+                  <TableCell>{s.deposito_nome}</TableCell>
+                  <TableCell className="font-medium">{s.quantidade}</TableCell>
+                  <TableCell className="font-bold text-green-600">{s.disponivel}</TableCell>
+                  <TableCell>
+                    <div className="text-xs text-gray-500">
+                      {new Date(s.updated_at).toLocaleDateString('pt-BR')}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(s.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       )}
     </div>
   )

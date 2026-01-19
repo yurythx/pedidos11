@@ -3,7 +3,10 @@
 import React, { useEffect, useState } from 'react'
 import { request } from '../../src/lib/http/request'
 import { useAuthStore } from '../../src/features/auth/store'
-import type { Paginacao, Usuario } from '../../src/types'
+import type { Paginacao } from '../../src/types'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TablePagination } from '../../src/components/ui/Table'
+import { Plus, Search, Eye, Trash2 } from 'lucide-react'
+import { formatBRL } from '../../src/utils/currency'
 
 type Venda = {
   id: string
@@ -61,12 +64,14 @@ export default function VendasPage() {
   const [produtoId, setProdutoId] = useState<string>('')
   const [quantidade, setQuantidade] = useState<string>('1')
   const [descontoItem, setDescontoItem] = useState<string>('0')
+  const [page, setPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(20)
 
   const loadVendas = async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await request.get<Paginacao<Venda>>('/vendas/?page_size=20')
+      const res = await request.get<Paginacao<Venda>>(`/vendas/?page_size=${pageSize}&page=${page}`)
       setData(res)
     } catch (err: any) {
       setError(err?.message ?? 'Erro ao carregar vendas')
@@ -125,7 +130,7 @@ export default function VendasPage() {
     loadDepositos()
     loadProdutos()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [page, pageSize])
 
   useEffect(() => {
     loadVendaDetail(selectedVendaId)
@@ -239,211 +244,258 @@ export default function VendasPage() {
   }
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Vendas</h1>
-      <form onSubmit={onCreateVenda} className="space-y-2 mb-4 border p-3 rounded">
-        <div className="grid grid-cols-4 gap-2">
-          <div className="col-span-2">
-            <label className="block text-sm">Cliente</label>
-            <select
-              className="mt-1 w-full border rounded px-2 py-1"
-              value={clienteId}
-              onChange={(e) => setClienteId(e.target.value)}
-            >
-              <option value="">Selecione (opcional)</option>
-              {clientes.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm">Tipo de Pagamento</label>
-            <select
-              className="mt-1 w-full border rounded px-2 py-1"
-              value={tipoPagamento}
-              onChange={(e) => setTipoPagamento(e.target.value)}
-            >
-              <option value="DINHEIRO">Dinheiro</option>
-              <option value="CARTAO">Cartão</option>
-              <option value="PIX">Pix</option>
-              <option value="BOLETO">Boleto</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm">Observações</label>
-            <input
-              className="mt-1 w-full border rounded px-2 py-1"
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-            />
-          </div>
-        </div>
-        <button
-          type="submit"
-          disabled={creating}
-          className="bg-black text-white rounded px-3 py-2 disabled:opacity-60"
-        >
-          {creating ? 'Criando...' : 'Criar Venda'}
-        </button>
-      </form>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="heading-1">Vendas</h1>
+        {/* Futuramente mover formulário para um modal ou página dedicada */}
+      </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="border p-3 rounded">
-          <h2 className="font-medium mb-2">Operações por Venda</h2>
-          <div className="space-y-2">
-            <label className="block text-sm">Venda</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={selectedVendaId}
-              onChange={(e) => setSelectedVendaId(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {(data?.results ?? []).map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.numero} — {v.cliente_nome ?? 'Balcão'} ({v.status})
-                </option>
-              ))}
-            </select>
-            <label className="block text-sm">Depósito</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={depositoId}
-              onChange={(e) => setDepositoId(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {depositos.map((d) => (
-                <option key={d.id} value={d.id}>{d.nome}</option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <form onSubmit={onValidarEstoque}>
-                <button type="submit" className="border rounded px-3 py-2">Validar Estoque</button>
-              </form>
-              <form onSubmit={onFinalizarVenda}>
-                <button type="submit" className="border rounded px-3 py-2">Finalizar</button>
-              </form>
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="heading-2 mb-4">Nova Venda</h2>
+        <form onSubmit={onCreateVenda} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="label">Cliente</label>
+              <select
+                className="input"
+                value={clienteId}
+                onChange={(e) => setClienteId(e.target.value)}
+              >
+                <option value="">Selecione (opcional)</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Tipo de Pagamento</label>
+              <select
+                className="input"
+                value={tipoPagamento}
+                onChange={(e) => setTipoPagamento(e.target.value)}
+              >
+                <option value="DINHEIRO">Dinheiro</option>
+                <option value="CARTAO">Cartão</option>
+                <option value="PIX">Pix</option>
+                <option value="BOLETO">Boleto</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Observações</label>
+              <input
+                className="input"
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+              />
             </div>
           </div>
+          <button
+            type="submit"
+            disabled={creating}
+            className="btn btn-primary w-full md:w-auto"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            {creating ? 'Criando...' : 'Criar Venda'}
+          </button>
+        </form>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card">
+          <h2 className="font-medium mb-4 text-gray-900">Operações</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="label">Venda Selecionada</label>
+              <select
+                className="input"
+                value={selectedVendaId}
+                onChange={(e) => setSelectedVendaId(e.target.value)}
+              >
+                <option value="">Selecione para gerenciar</option>
+                {(data?.results ?? []).map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.numero} — {v.cliente_nome ?? 'Balcão'} ({v.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedVendaId && (
+              <>
+                 <div>
+                  <label className="label">Depósito de Saída</label>
+                  <select
+                    className="input"
+                    value={depositoId}
+                    onChange={(e) => setDepositoId(e.target.value)}
+                  >
+                    <option value="">Selecione</option>
+                    {depositos.map((d) => (
+                      <option key={d.id} value={d.id}>{d.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button onClick={(e: any) => onValidarEstoque(e)} className="btn btn-secondary w-full">Validar Estoque</button>
+                  <button onClick={(e: any) => onFinalizarVenda(e)} className="btn btn-primary w-full">Finalizar Venda</button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-        <div className="border p-3 rounded">
-          <h2 className="font-medium mb-2">Cancelamento</h2>
-          <form onSubmit={onCancelarVenda} className="space-y-2">
-            <label className="block text-sm">Motivo</label>
-            <input
-              className="w-full border rounded px-2 py-1"
-              value={motivoCancelamento}
-              onChange={(e) => setMotivoCancelamento(e.target.value)}
-              placeholder="Opcional"
-            />
-            <button type="submit" className="border rounded px-3 py-2">Cancelar Venda</button>
-          </form>
-        </div>
-        <div className="border p-3 rounded">
-          <h2 className="font-medium mb-2">Itens da Venda</h2>
-          <form onSubmit={onAdicionarItem} className="space-y-2">
-            <label className="block text-sm">Produto</label>
-            <select
-              className="w-full border rounded px-2 py-1"
-              value={produtoId}
-              onChange={(e) => setProdutoId(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {produtos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nome}
-                </option>
-              ))}
-            </select>
-            <div className="grid grid-cols-3 gap-2">
+
+        <div className="card">
+          <h2 className="font-medium mb-4 text-gray-900">Adicionar Itens</h2>
+           <form onSubmit={onAdicionarItem} className="space-y-4">
+            <div>
+              <label className="label">Produto</label>
+              <select
+                className="input"
+                value={produtoId}
+                onChange={(e) => setProdutoId(e.target.value)}
+                disabled={!selectedVendaId}
+              >
+                <option value="">Selecione</option>
+                {produtos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm">Quantidade</label>
+                <label className="label">Qtd.</label>
                 <input
-                  className="w-full border rounded px-2 py-1"
+                  className="input"
                   value={quantidade}
                   onChange={(e) => setQuantidade(e.target.value)}
+                  disabled={!selectedVendaId}
                 />
               </div>
               <div>
-                <label className="block text-sm">Desconto</label>
+                <label className="label">Desc. (R$)</label>
                 <input
-                  className="w-full border rounded px-2 py-1"
+                  className="input"
                   value={descontoItem}
                   onChange={(e) => setDescontoItem(e.target.value)}
+                  disabled={!selectedVendaId}
                 />
               </div>
-              <div className="flex items-end">
-                <button type="submit" className="border rounded px-3 py-2 w-full">Adicionar</button>
-              </div>
             </div>
+            <button type="submit" className="btn btn-secondary w-full" disabled={!selectedVendaId}>Adicionar Item</button>
+          </form>
+        </div>
+
+         <div className="card">
+          <h2 className="font-medium mb-4 text-gray-900">Cancelamento</h2>
+          <form onSubmit={onCancelarVenda} className="space-y-4">
+            <div>
+              <label className="label">Motivo</label>
+              <input
+                className="input"
+                value={motivoCancelamento}
+                onChange={(e) => setMotivoCancelamento(e.target.value)}
+                placeholder="Opcional"
+                disabled={!selectedVendaId}
+              />
+            </div>
+            <button type="submit" className="btn btn-secondary w-full text-red-600 hover:bg-red-50" disabled={!selectedVendaId}>Cancelar Venda</button>
           </form>
         </div>
       </div>
 
-      {loading && <div>Carregando vendas...</div>}
-      {error && <div className="text-red-600">{error}</div>}
+      {loading && <div className="text-center py-8 text-gray-500">Carregando vendas...</div>}
+      {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl">{error}</div>}
+      
       {!loading && !error && (
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-2 border">Número</th>
-              <th className="text-left p-2 border">Cliente</th>
-              <th className="text-left p-2 border">Vendedor</th>
-              <th className="text-left p-2 border">Status</th>
-              <th className="text-left p-2 border">Itens</th>
-              <th className="text-left p-2 border">Total</th>
-              <th className="text-left p-2 border">Emissão</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Número</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Vendedor</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Itens</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Emissão</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {(data?.results ?? []).map((v) => (
-              <tr key={v.id}>
-                <td className="p-2 border">{v.numero}</td>
-                <td className="p-2 border">{v.cliente_nome ?? '-'}</td>
-                <td className="p-2 border">{v.vendedor_nome ?? '-'}</td>
-                <td className="p-2 border">{v.status}</td>
-                <td className="p-2 border">{v.quantidade_itens}</td>
-                <td className="p-2 border">R$ {Number(v.total_liquido).toFixed(2)}</td>
-                <td className="p-2 border">{new Date(v.data_emissao).toLocaleString('pt-BR')}</td>
-              </tr>
+              <TableRow 
+                key={v.id} 
+                onClick={() => setSelectedVendaId(v.id)}
+                className={selectedVendaId === v.id ? 'bg-red-50' : ''}
+              >
+                <TableCell><span className="font-mono font-medium">{v.numero}</span></TableCell>
+                <TableCell>{v.cliente_nome ?? 'Balcão'}</TableCell>
+                <TableCell>{v.vendedor_nome ?? '-'}</TableCell>
+                <TableCell>
+                  <span className={`
+                    px-2 py-1 rounded-full text-xs font-bold
+                    ${v.status === 'FINALIZADA' ? 'bg-green-100 text-green-700' : 
+                      v.status === 'CANCELADA' ? 'bg-red-100 text-red-700' : 
+                      'bg-blue-100 text-blue-700'}
+                  `}>
+                    {v.status}
+                  </span>
+                </TableCell>
+                <TableCell>{v.quantidade_itens}</TableCell>
+                <TableCell className="font-medium">{formatBRL(v.total_liquido)}</TableCell>
+                <TableCell>{new Date(v.data_emissao).toLocaleDateString('pt-BR')}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
+      )}
+
+      {!loading && !error && (
+         <TablePagination
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          hasMore={(data?.results?.length ?? 0) >= pageSize}
+        />
       )}
 
       {vendaDetail && (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold mb-2">Itens da Venda #{vendaDetail.numero}</h2>
-          <table className="w-full border">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left p-2 border">Produto</th>
-                <th className="text-left p-2 border">Quantidade</th>
-                <th className="text-left p-2 border">Preço</th>
-                <th className="text-left p-2 border">Desconto</th>
-                <th className="text-left p-2 border">Subtotal</th>
-                <th className="text-left p-2 border">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="card mt-6">
+          <h2 className="heading-2 mb-4">Itens da Venda #{vendaDetail.numero}</h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Produto</TableHead>
+                <TableHead>Qtd</TableHead>
+                <TableHead>Preço Unit.</TableHead>
+                <TableHead>Desconto</TableHead>
+                <TableHead>Subtotal</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {vendaDetail.itens.map((i) => (
-                <tr key={i.id}>
-                  <td className="p-2 border">{i.produto_nome}</td>
-                  <td className="p-2 border">{i.quantidade}</td>
-                  <td className="p-2 border">R$ {Number(i.preco_unitario).toFixed(2)}</td>
-                  <td className="p-2 border">R$ {Number(i.desconto).toFixed(2)}</td>
-                  <td className="p-2 border">R$ {Number(i.subtotal).toFixed(2)}</td>
-                  <td className="p-2 border">
-                    <button
-                      onClick={() => onRemoverItem(i.id)}
-                      className="text-sm underline"
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
+                <TableRow key={i.id}>
+                  <TableCell>{i.produto_nome}</TableCell>
+                  <TableCell>{i.quantidade}</TableCell>
+                  <TableCell>{formatBRL(i.preco_unitario)}</TableCell>
+                  <TableCell>{formatBRL(i.desconto)}</TableCell>
+                  <TableCell className="font-bold">{formatBRL(i.subtotal)}</TableCell>
+                  <TableCell>
+                    {vendaDetail.status === 'ABERTA' && (
+                      <button
+                        onClick={() => onRemoverItem(i.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                        title="Remover Item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

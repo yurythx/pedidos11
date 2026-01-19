@@ -31,9 +31,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [user, tokens, router, isAuthPage])
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden bg-background">
       {!isAuthPage && <Sidebar />}
-      <main className="flex-1 min-h-screen">{children}</main>
+      <main className="flex-1 overflow-auto md:p-6 p-4 pt-16 md:pt-6 relative w-full">
+        {children}
+      </main>
     </div>
   )
 }

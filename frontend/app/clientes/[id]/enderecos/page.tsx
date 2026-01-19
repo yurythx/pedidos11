@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { request } from '../../../../src/lib/http/request'
 import { useParams } from 'next/navigation'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../src/components/ui/Table'
+import { Plus, MapPin } from 'lucide-react'
 
 type Endereco = {
   id: string
@@ -91,80 +93,112 @@ export default function EnderecosClientePage() {
     }
   }
 
-  if (loading) return <div className="p-4">Carregando endereços...</div>
+  if (loading) return <div className="text-center py-8 text-gray-500">Carregando endereços...</div>
+
   return (
-    <div className="p-4 max-w-3xl">
-      <h1 className="text-xl font-semibold mb-3">Endereços do Cliente</h1>
-      {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
-      <form onSubmit={onCreate} className="space-y-2 mb-4 border p-3 rounded">
-        <div className="grid grid-cols-4 gap-2">
-          <div>
-            <label className="block text-sm">Tipo</label>
-            <select className="mt-1 w-full border rounded px-2 py-1" value={form.tipo} onChange={(e) => onChange('tipo', e.target.value)}>
-              <option value="ENTREGA">Entrega</option>
-              <option value="COBRANCA">Cobrança</option>
-              <option value="COMERCIAL">Comercial</option>
-              <option value="RESIDENCIAL">Residencial</option>
-              <option value="FISICO">Físico</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm">CEP</label>
-            <input className="mt-1 w-full border rounded px-2 py-1" value={form.cep ?? ''} onChange={(e) => onChange('cep', e.target.value)} />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-sm">Logradouro</label>
-            <input className="mt-1 w-full border rounded px-2 py-1" value={form.logradouro ?? ''} onChange={(e) => onChange('logradouro', e.target.value)} />
-          </div>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="heading-1">Endereços do Cliente</h1>
+          <p className="text-gray-500 mt-1">Gerencie os locais de entrega e cobrança</p>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          <div>
-            <label className="block text-sm">Número</label>
-            <input className="mt-1 w-full border rounded px-2 py-1" value={form.numero ?? ''} onChange={(e) => onChange('numero', e.target.value)} />
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="heading-2 mb-4 flex items-center gap-2">
+           <MapPin className="w-5 h-5 text-gray-400" />
+           Novo Endereço
+        </h2>
+        {error && <p className="text-red-600 text-sm mb-3 bg-red-50 p-3 rounded-lg">{error}</p>}
+        <form onSubmit={onCreate} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="label">Tipo</label>
+              <select className="input" value={form.tipo} onChange={(e) => onChange('tipo', e.target.value)}>
+                <option value="ENTREGA">Entrega</option>
+                <option value="COBRANCA">Cobrança</option>
+                <option value="COMERCIAL">Comercial</option>
+                <option value="RESIDENCIAL">Residencial</option>
+                <option value="FISICO">Físico</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">CEP</label>
+              <input className="input" value={form.cep ?? ''} onChange={(e) => onChange('cep', e.target.value)} />
+            </div>
+            <div className="md:col-span-2">
+              <label className="label">Logradouro</label>
+              <input className="input" value={form.logradouro ?? ''} onChange={(e) => onChange('logradouro', e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm">Complemento</label>
-            <input className="mt-1 w-full border rounded px-2 py-1" value={form.complemento ?? ''} onChange={(e) => onChange('complemento', e.target.value)} />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="label">Número</label>
+              <input className="input" value={form.numero ?? ''} onChange={(e) => onChange('numero', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Complemento</label>
+              <input className="input" value={form.complemento ?? ''} onChange={(e) => onChange('complemento', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Bairro</label>
+              <input className="input" value={form.bairro ?? ''} onChange={(e) => onChange('bairro', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Cidade</label>
+              <input className="input" value={form.cidade ?? ''} onChange={(e) => onChange('cidade', e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm">Bairro</label>
-            <input className="mt-1 w-full border rounded px-2 py-1" value={form.bairro ?? ''} onChange={(e) => onChange('bairro', e.target.value)} />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="label">UF</label>
+              <input className="input" value={form.uf ?? ''} onChange={(e) => onChange('uf', e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm">Cidade</label>
-            <input className="mt-1 w-full border rounded px-2 py-1" value={form.cidade ?? ''} onChange={(e) => onChange('cidade', e.target.value)} />
+          <div className="flex justify-end">
+            <button type="submit" className="btn btn-primary">
+              <Plus className="w-5 h-5 mr-2" />
+              Adicionar Endereço
+            </button>
           </div>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          <div>
-            <label className="block text-sm">UF</label>
-            <input className="mt-1 w-full border rounded px-2 py-1" value={form.uf ?? ''} onChange={(e) => onChange('uf', e.target.value)} />
-          </div>
-        </div>
-        <button type="submit" className="bg-black text-white rounded px-3 py-2">Adicionar</button>
-      </form>
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="text-left p-2 border">Tipo</th>
-            <th className="text-left p-2 border">Endereço</th>
-            <th className="text-left p-2 border">CEP</th>
-            <th className="text-left p-2 border">Cidade/UF</th>
-          </tr>
-        </thead>
-        <tbody>
-          {enderecos.map((e) => (
-            <tr key={e.id}>
-              <td className="p-2 border">{e.tipo}</td>
-              <td className="p-2 border">
-                {e.logradouro}, {e.numero}{e.complemento ? ` - ${e.complemento}` : ''} - {e.bairro}
-              </td>
-              <td className="p-2 border">{e.cep}</td>
-              <td className="p-2 border">{e.cidade}/{e.uf}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        </form>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Endereço</TableHead>
+            <TableHead>CEP</TableHead>
+            <TableHead>Cidade/UF</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {enderecos.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                Nenhum endereço cadastrado.
+              </TableCell>
+            </TableRow>
+          ) : (
+            enderecos.map((e) => (
+              <TableRow key={e.id}>
+                <TableCell>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-full">
+                    {e.tipo}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium text-gray-900">{e.logradouro}, {e.numero}</div>
+                  <div className="text-xs text-gray-500">{e.bairro}{e.complemento ? ` - ${e.complemento}` : ''}</div>
+                </TableCell>
+                <TableCell>{e.cep}</TableCell>
+                <TableCell>{e.cidade}/{e.uf}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }

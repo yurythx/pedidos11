@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../src/features/auth/store'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../src/components/ui/Table'
+import { Upload, Check, FileText, AlertCircle, ShoppingCart } from 'lucide-react'
 
 type PreviewItem = {
   codigo_xml: string
@@ -163,125 +165,197 @@ export default function ComprasPage() {
   }
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Compras & NFe</h1>
-      <form onSubmit={onUpload} className="space-y-2 mb-4 border p-3 rounded">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <label className="block text-sm">Arquivo XML</label>
-          <input type="file" name="xml" accept=".xml" className="mt-1" />
+          <h1 className="heading-1">Compras & NFe</h1>
+          <p className="text-gray-500 mt-1">Importação de notas fiscais e gestão de compras</p>
         </div>
-        <button type="submit" disabled={loading} className="bg-black text-white rounded px-3 py-2 disabled:opacity-60">
-          {loading ? 'Processando...' : 'Enviar XML'}
-        </button>
-      </form>
-      {error && <div className="text-red-600 mb-3">{error}</div>}
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="heading-2 mb-4 flex items-center gap-2">
+           <Upload className="w-5 h-5 text-gray-400" />
+           Importar XML
+        </h2>
+        <form onSubmit={onUpload} className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 w-full">
+            <label className="label">Arquivo XML da NFe</label>
+            <input 
+              type="file" 
+              name="xml" 
+              accept=".xml" 
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2.5 file:px-4
+                file:rounded-xl file:border-0
+                file:text-sm file:font-semibold
+                file:bg-primary/10 file:text-primary
+                hover:file:bg-primary/20 cursor-pointer
+              "
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="btn btn-primary w-full md:w-auto"
+          >
+            {loading ? 'Processando...' : 'Enviar e Processar'}
+          </button>
+        </form>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          {error}
+        </div>
+      )}
+
       {preview && (
-        <div className="space-y-3">
-          <div className="border rounded p-3">
-            <div className="text-sm">Fornecedor: {preview.fornecedor.nome} ({preview.fornecedor.cnpj})</div>
-            <div className="text-sm">NFe: {preview.numero_nfe} / Série: {preview.serie_nfe}</div>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="card">
+              <h3 className="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-3">Dados da Nota</h3>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                   <p className="font-bold text-gray-900">{preview.fornecedor.nome}</p>
+                   <p className="text-sm text-gray-500">CNPJ: {preview.fornecedor.cnpj}</p>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-50 flex gap-6">
+                <div>
+                   <span className="text-xs text-gray-400 block">Número</span>
+                   <span className="font-mono font-medium">{preview.numero_nfe}</span>
+                </div>
+                <div>
+                   <span className="text-xs text-gray-400 block">Série</span>
+                   <span className="font-mono font-medium">{preview.serie_nfe}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-3">Destino</h3>
+              <label className="label">Depósito de Entrada</label>
+              <select
+                className="input"
+                value={depositoId}
+                onChange={(e) => setDepositoId(e.target.value)}
+              >
+                <option value="">Selecione um depósito...</option>
+                {depositos.map((d) => (
+                  <option key={d.id} value={d.id}>{d.nome}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="border rounded p-3">
-            <label className="block text-sm mb-1">Depósito</label>
-            <select
-              className="border rounded px-2 py-1"
-              value={depositoId}
-              onChange={(e) => setDepositoId(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {depositos.map((d) => (
-                <option key={d.id} value={d.id}>{d.nome}</option>
-              ))}
-            </select>
-          </div>
-          <div className="border rounded p-3">
-            <h2 className="font-medium mb-2">Itens</h2>
-            <table className="w-full border">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left p-2 border">Código XML</th>
-                  <th className="text-left p-2 border">Descrição</th>
-                  <th className="text-left p-2 border">Produto</th>
-                  <th className="text-left p-2 border">Fator</th>
-                  <th className="text-left p-2 border">Qtd XML</th>
-                  <th className="text-left p-2 border">Preço Custo</th>
-                  <th className="text-left p-2 border">Lote</th>
-                </tr>
-              </thead>
-              <tbody>
+
+          <div className="card overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+               <h2 className="heading-2">Itens da Nota</h2>
+               <span className="text-sm text-gray-500">{preview.itens.length} itens encontrados</span>
+            </div>
+            
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cód. XML</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Vincular Produto</TableHead>
+                  <TableHead>Fator</TableHead>
+                  <TableHead>Qtd</TableHead>
+                  <TableHead>Custo Unit.</TableHead>
+                  <TableHead>Lote / Validade</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {preview.itens.map((it, idx) => (
-                  <tr key={it.codigo_xml}>
-                    <td className="p-2 border">{it.codigo_xml}</td>
-                    <td className="p-2 border">{it.descricao_xml}</td>
-                    <td className="p-2 border">
+                  <TableRow key={it.codigo_xml}>
+                    <TableCell><span className="font-mono text-xs text-gray-500">{it.codigo_xml}</span></TableCell>
+                    <TableCell className="max-w-xs truncate" title={it.descricao_xml}>{it.descricao_xml}</TableCell>
+                    <TableCell>
                       <select
-                        className="border rounded px-2 py-1 w-56"
+                        className="input py-2 text-sm min-w-[200px]"
                         value={itensForm[idx]?.produto_id ?? ''}
                         onChange={(e) => updateItem(idx, 'produto_id', e.target.value)}
                       >
-                        <option value="">Selecione</option>
+                        <option value="">Selecione...</option>
                         {(it.sugestoes_produtos ?? []).map((s) => (
                           <option key={s.produto_id} value={s.produto_id}>{s.nome}</option>
                         ))}
                       </select>
-                    </td>
-                    <td className="p-2 border">
+                    </TableCell>
+                    <TableCell>
                       <input
-                        className="border rounded px-2 py-1 w-20"
+                        className="input py-2 w-20 text-center"
                         type="number"
                         step="0.001"
                         value={itensForm[idx]?.fator_conversao ?? 1}
                         onChange={(e) => updateItem(idx, 'fator_conversao', Number(e.target.value))}
                       />
-                    </td>
-                    <td className="p-2 border">
+                    </TableCell>
+                    <TableCell>
                       <input
-                        className="border rounded px-2 py-1 w-20"
+                        className="input py-2 w-20 text-center"
                         type="number"
                         step="0.001"
                         value={itensForm[idx]?.qtd_xml ?? 1}
                         onChange={(e) => updateItem(idx, 'qtd_xml', Number(e.target.value))}
                       />
-                    </td>
-                    <td className="p-2 border">
+                    </TableCell>
+                    <TableCell>
                       <input
-                        className="border rounded px-2 py-1 w-24"
+                        className="input py-2 w-24 text-right"
                         type="number"
                         step="0.01"
                         value={itensForm[idx]?.preco_custo ?? 0}
                         onChange={(e) => updateItem(idx, 'preco_custo', Number(e.target.value))}
                       />
-                    </td>
-                    <td className="p-2 border">
-                      <div className="grid grid-cols-3 gap-1">
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-2 min-w-[140px]">
                         <input
-                          placeholder="Código"
-                          className="border rounded px-2 py-1"
+                          placeholder="Lote"
+                          className="input py-1.5 text-xs"
                           value={itensForm[idx]?.lote_codigo ?? ''}
                           onChange={(e) => updateItem(idx, 'lote_codigo', e.target.value)}
                         />
-                        <input
-                          type="date"
-                          placeholder="Validade"
-                          className="border rounded px-2 py-1"
-                          value={itensForm[idx]?.lote_validade ?? ''}
-                          onChange={(e) => updateItem(idx, 'lote_validade', e.target.value)}
-                        />
-                        <input
-                          type="date"
-                          placeholder="Fabricação"
-                          className="border rounded px-2 py-1"
-                          value={itensForm[idx]?.lote_fabricacao ?? ''}
-                          onChange={(e) => updateItem(idx, 'lote_fabricacao', e.target.value)}
-                        />
+                        <div className="flex gap-1">
+                          <input
+                            type="date"
+                            title="Validade"
+                            className="input py-1.5 text-xs px-1"
+                            value={itensForm[idx]?.lote_validade ?? ''}
+                            onChange={(e) => updateItem(idx, 'lote_validade', e.target.value)}
+                          />
+                          <input
+                            type="date"
+                            title="Fabricação"
+                            className="input py-1.5 text-xs px-1"
+                            value={itensForm[idx]?.lote_fabricacao ?? ''}
+                            onChange={(e) => updateItem(idx, 'lote_fabricacao', e.target.value)}
+                          />
+                        </div>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-          <button onClick={onConfirmar} className="bg-black text-white rounded px-3 py-2">Confirmar Importação</button>
+
+          <div className="flex justify-end pt-4">
+            <button 
+              onClick={onConfirmar} 
+              className="btn btn-primary text-lg px-8 py-3 shadow-lg shadow-red-200"
+            >
+              <Check className="w-5 h-5 mr-2" />
+              Confirmar Importação
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -3,6 +3,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { request } from '../../src/lib/http/request'
 import type { Paginacao } from '../../src/types'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TablePagination } from '../../src/components/ui/Table'
+import { Search, Filter, Plus, Edit, Trash2 } from 'lucide-react'
+import { formatBRL } from '../../src/utils/currency'
+import Link from 'next/link'
 
 type ProdutoList = {
   id: string
@@ -25,12 +29,9 @@ export default function ProdutosPage() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [tipo, setTipo] = useState<string>('TODOS')
-  const [precoMin, setPrecoMin] = useState<string>('')
-  const [precoMax, setPrecoMax] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(20)
-  const [ordering, setOrdering] = useState<string>('nome')
-
+  
   const load = async () => {
     setLoading(true)
     setError(null)
@@ -38,11 +39,8 @@ export default function ProdutosPage() {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (tipo && tipo !== 'TODOS') params.set('tipo', tipo)
-      if (precoMin) params.set('preco_min', precoMin)
-      if (precoMax) params.set('preco_max', precoMax)
       params.set('page_size', String(pageSize))
       params.set('page', String(page))
-      if (ordering) params.set('ordering', ordering)
       const res = await request.get<Paginacao<ProdutoList>>(`/produtos/?${params.toString()}`)
       setData(res)
     } catch (err: any) {
@@ -54,122 +52,149 @@ export default function ProdutosPage() {
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, ordering])
+  }, [page, pageSize, search, tipo])
 
-  const produtos = useMemo(() => data?.results ?? [], [data])
+  const onDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este produto?')) return
+    try {
+      await request.delete(`/produtos/${id}/`)
+      load()
+    } catch (err: any) {
+      alert(err?.message ?? 'Erro ao excluir')
+    }
+  }
 
   const onRecalcularCusto = async (id: string) => {
     try {
       await request.post<any>(`/produtos/${id}/recalcular_custo/`)
       await load()
+      alert('Custo recalculado com sucesso!')
     } catch (err) {
       console.error(err)
       alert('Erro ao recalcular custo')
     }
   }
 
+  const produtos = useMemo(() => data?.results ?? [], [data])
+
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Produtos</h1>
-      <div className="grid grid-cols-6 gap-2 mb-3">
-        <input
-          placeholder="Buscar por nome, SKU ou código de barras"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border rounded px-3 py-2 col-span-2"
-        />
-        <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="border rounded px-3 py-2">
-          <option value="TODOS">Todos</option>
-          <option value="COMUM">Comum</option>
-          <option value="COMPOSTO">Composto</option>
-          <option value="INSUMO">Insumo</option>
-        </select>
-        <input
-          placeholder="Preço mín."
-          value={precoMin}
-          onChange={(e) => setPrecoMin(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <input
-          placeholder="Preço máx."
-          value={precoMax}
-          onChange={(e) => setPrecoMax(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="border rounded px-3 py-2">
-          <option value="nome">Ordenar: Nome</option>
-          <option value="preco_venda">Ordenar: Preço</option>
-          <option value="-created_at">Ordenar: Recentes</option>
-        </select>
-        <button onClick={() => { setPage(1); load() }} className="bg-black text-white rounded px-3 py-2">Filtrar</button>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="heading-1">Produtos</h1>
+        <Link href="/produtos/novo" className="btn btn-primary">
+          <Plus className="w-5 h-5 mr-2" />
+          Novo Produto
+        </Link>
       </div>
-      {loading && <div>Carregando produtos...</div>}
-      {error && <div className="text-red-600">{error}</div>}
-      {!loading && !error && (
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-2 border">Nome</th>
-              <th className="text-left p-2 border">Categoria</th>
-              <th className="text-left p-2 border">Tipo</th>
-              <th className="text-left p-2 border">Preço Venda</th>
-              <th className="text-left p-2 border">Preço Custo</th>
-              <th className="text-left p-2 border">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {produtos.map((p) => (
-              <tr key={p.id}>
-                <td className="p-2 border">{p.nome}</td>
-                <td className="p-2 border">{p.categoria_nome ?? '-'}</td>
-                <td className="p-2 border">{p.tipo_display}</td>
-                <td className="p-2 border">R$ {Number(p.preco_venda).toFixed(2)}</td>
-                <td className="p-2 border">{p.preco_custo != null ? `R$ ${Number(p.preco_custo).toFixed(2)}` : '-'}</td>
-                <td className="p-2 border">
-                  {p.tipo === 'COMPOSTO' && (
-                    <button
-                      onClick={() => onRecalcularCusto(p.id)}
-                      className="text-sm underline"
-                    >
-                      Recalcular Custo
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {!loading && !error && (
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="border rounded px-3 py-2 disabled:opacity-60"
+
+      {/* Filtros */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            placeholder="Buscar por nome, SKU ou código de barras"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input pl-10"
+          />
+        </div>
+        <div className="w-full md:w-48 relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <select 
+            value={tipo} 
+            onChange={(e) => setTipo(e.target.value)} 
+            className="input pl-10 appearance-none"
           >
-            Anterior
-          </button>
-          <span className="text-sm">Página {page}</span>
-          <button
-            disabled={(data?.results?.length ?? 0) < pageSize}
-            onClick={() => setPage((p) => p + 1)}
-            className="border rounded px-3 py-2 disabled:opacity-60"
-          >
-            Próxima
-          </button>
-          <select
-            value={pageSize}
-            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
-            className="border rounded px-3 py-2"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
+            <option value="TODOS">Todos os Tipos</option>
+            <option value="COMUM">Comum</option>
+            <option value="COMPOSTO">Composto</option>
+            <option value="INSUMO">Insumo</option>
           </select>
         </div>
+      </div>
+
+      {loading && <div className="text-center py-8 text-gray-500">Carregando produtos...</div>}
+      {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl">{error}</div>}
+      
+      {!loading && !error && (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Preço Venda</TableHead>
+                <TableHead>Preço Custo</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {produtos.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <div className="font-medium text-gray-900">{p.nome}</div>
+                    {(p.sku || p.codigo_barras) && (
+                      <div className="text-xs text-gray-500">
+                        {p.sku && <span className="mr-2">SKU: {p.sku}</span>}
+                        {p.codigo_barras && <span>EAN: {p.codigo_barras}</span>}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>{p.categoria_nome ?? '-'}</TableCell>
+                  <TableCell>
+                    <span className={`
+                      px-2 py-1 rounded-full text-xs font-medium
+                      ${p.tipo === 'INSUMO' ? 'bg-blue-50 text-blue-700' : 
+                        p.tipo === 'COMPOSTO' ? 'bg-purple-50 text-purple-700' : 
+                        'bg-gray-100 text-gray-700'}
+                    `}>
+                      {p.tipo_display}
+                    </span>
+                  </TableCell>
+                  <TableCell>{formatBRL(p.preco_venda)}</TableCell>
+                  <TableCell>{p.preco_custo != null ? formatBRL(p.preco_custo) : '-'}</TableCell>
+                  <TableCell className="text-right">
+                     <div className="flex items-center justify-end gap-2">
+                        {p.tipo === 'COMPOSTO' && (
+                          <button 
+                            className="text-xs text-primary hover:underline font-medium mr-2"
+                            onClick={() => onRecalcularCusto(p.id)}
+                            title="Recalcular Custo"
+                          >
+                            Recalcular
+                          </button>
+                        )}
+                        <Link 
+                          href={`/produtos/${p.id}`}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => onDelete(p.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+            hasMore={(data?.results?.length ?? 0) >= pageSize}
+          />
+        </>
       )}
     </div>
   )
 }
-

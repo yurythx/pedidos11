@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import axios from 'axios'
 import fs from 'fs'
 import path from 'path'
-import FormData from 'form-data'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8000/api'
 let access: string | null = null
@@ -112,15 +110,49 @@ describe('API integração estendida', () => {
     // Finalização e cancelamento cobertos em testes unitários; aqui validamos pré-condições de estoque
   })
 
-  it('NFe upload XML com preview', async () => {
-    const xmlPath = path.resolve(process.cwd(), '../backend/nfe/tests/fixtures/nfe_teste.xml')
-    const form = new FormData()
-    form.append('arquivo', fs.createReadStream(xmlPath))
-    const client = axios.create({ baseURL: API, headers: { Authorization: `Bearer ${access}` } })
-    const res = await client.post('/nfe/importacao/upload-xml/', form, { headers: (form as any).getHeaders() })
-    const json = res.data
-    expect(res.status).toBe(200)
-    expect(json?.success).toBe(true)
+  it('NFe: confirmar importação cria lotes e vínculos', async () => {
+    const deps = await apiFetch('/depositos/?page_size=1')
+    const depositoId = (deps.data?.results ?? deps.data)?.[0]?.id
+    const produtos = await apiFetch('/produtos/?page_size=1')
+    const produto = (produtos.data?.results ?? produtos.data)?.[0]
+    const produtoId = produto?.id
+    const validade = new Date()
+    validade.setFullYear(validade.getFullYear() + 1)
+    const dataVal = validade.toISOString().slice(0, 10)
+    const payload = {
+      deposito_id: depositoId,
+      numero_nfe: `12345-${Date.now()}`,
+      serie_nfe: '1',
+      fornecedor: {
+        cnpj: '73.621.701/0001-29',
+        nome: `Fornecedor Teste ${Date.now()}`,
+      },
+      itens: [
+        {
+          codigo_xml: 'TEST001',
+          produto_id: produtoId,
+          fator_conversao: 2,
+          qtd_xml: 3,
+          preco_custo: 4.5,
+          lote: {
+            codigo: 'LOTE-NFE-IT-' + Date.now(),
+            validade: dataVal,
+          },
+        },
+      ],
+    }
+    const res = await apiFetch('/nfe/importacao/confirmar/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (res.status !== 200 && res.status !== 201) {
+      console.error('NFe Import Error:', JSON.stringify(res.data, null, 2))
+    }
+    expect([200, 201]).toContain(res.status)
+    expect(res.data?.resultado?.lotes_criados).toBeGreaterThanOrEqual(1)
+    // Vinculos podem ser 0 se já existiam
+    expect(res.data?.resultado?.vinculos_criados).toBeGreaterThanOrEqual(0)
   })
   
   // KDS endpoints cobertos em testes de módulo; na integração validamos criação de itens

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react'
 import { request } from '../../src/lib/http/request'
 import type { Paginacao, Cliente } from '../../src/types'
 import Link from 'next/link'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TablePagination } from '../../src/components/ui/Table'
+import { Plus, Edit, Trash2, MapPin } from 'lucide-react'
 
 export default function ClientesPage() {
   const [data, setData] = useState<Paginacao<Cliente> | null>(null)
@@ -12,83 +14,110 @@ export default function ClientesPage() {
   const [page, setPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(20)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await request.get<Paginacao<Cliente>>(`/clientes/?page_size=${pageSize}&page=${page}`)
-        setData(res)
-      } catch (err: any) {
-        setError(err?.message ?? 'Erro ao carregar clientes')
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await request.get<Paginacao<Cliente>>(`/clientes/?page_size=${pageSize}&page=${page}`)
+      setData(res)
+    } catch (err: any) {
+      setError(err?.message ?? 'Erro ao carregar clientes')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchData()
   }, [page, pageSize])
 
-  if (loading) return <div className="p-4">Carregando clientes...</div>
-  if (error) return <div className="p-4 text-red-600">{error}</div>
+  const onDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este cliente?')) return
+    try {
+      await request.delete(`/clientes/${id}/`)
+      fetchData()
+    } catch (err: any) {
+      alert(err?.message ?? 'Erro ao excluir')
+    }
+  }
 
   const clientes = data?.results ?? []
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Clientes</h1>
-      <div className="mb-3 flex items-center gap-2">
-        <button
-          disabled={page <= 1}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          className="border rounded px-3 py-2 disabled:opacity-60"
-        >
-          Anterior
-        </button>
-        <span className="text-sm">Página {page}</span>
-        <button
-          disabled={(clientes.length ?? 0) < pageSize}
-          onClick={() => setPage((p) => p + 1)}
-          className="border rounded px-3 py-2 disabled:opacity-60"
-        >
-          Próxima
-        </button>
-        <select
-          value={pageSize}
-          onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
-          className="border rounded px-3 py-2"
-        >
-          <option value={10}>10</option>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-        </select>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="heading-1">Clientes</h1>
+        <Link href="/clientes/novo" className="btn btn-primary">
+          <Plus className="w-5 h-5 mr-2" />
+          Novo Cliente
+        </Link>
       </div>
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="text-left p-2 border">Nome</th>
-            <th className="text-left p-2 border">Documento</th>
-            <th className="text-left p-2 border">Email</th>
-            <th className="text-left p-2 border">Telefone</th>
-            <th className="text-left p-2 border">Endereços</th>
-          </tr>
-        </thead>
-        <tbody>
-          {clientes.map((c) => (
-            <tr key={c.id}>
-              <td className="p-2 border">{c.nome}</td>
-              <td className="p-2 border">{c.cpf_cnpj ?? '-'}</td>
-              <td className="p-2 border">{c.email ?? '-'}</td>
-              <td className="p-2 border">{c.telefone ?? '-'}</td>
-              <td className="p-2 border">
-                <Link href={`/clientes/${c.id}/enderecos`} className="text-sm underline">
-                  Gerenciar
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {loading && <div className="text-center py-8 text-gray-500">Carregando clientes...</div>}
+      {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl">{error}</div>}
+
+      {!loading && !error && (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Documento</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Endereços</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clientes.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>
+                    <div className="font-medium text-gray-900">{c.nome}</div>
+                  </TableCell>
+                  <TableCell>{c.cpf_cnpj ?? '-'}</TableCell>
+                  <TableCell>{c.email ?? '-'}</TableCell>
+                  <TableCell>{c.telefone ?? '-'}</TableCell>
+                  <TableCell>
+                    <Link 
+                      href={`/clientes/${c.id}/enderecos`} 
+                      className="text-sm text-gray-500 hover:text-primary hover:underline font-medium flex items-center gap-1"
+                    >
+                      <MapPin className="w-3 h-3" /> Gerenciar
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right">
+                     <div className="flex items-center justify-end gap-2">
+                        <Link 
+                          href={`/clientes/${c.id}`}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => onDelete(c.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+            hasMore={(data?.results?.length ?? 0) >= pageSize}
+          />
+        </>
+      )}
     </div>
   )
 }
-

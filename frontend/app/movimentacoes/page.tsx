@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from 'react'
 import { request } from '../../src/lib/http/request'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TablePagination } from '../../src/components/ui/Table'
+import { Filter, Search } from 'lucide-react'
+import { formatBRL } from '../../src/utils/currency'
 
 type Movimentacao = {
   id: string
@@ -49,91 +52,118 @@ export default function MovimentacoesPage() {
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, ordering, tipo, produto])
+  }, [page, pageSize, ordering, tipo])
+
+  const movimentacoes = data ?? []
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Movimentações</h1>
-      <div className="grid grid-cols-5 gap-2 mb-3">
-        <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="border rounded px-3 py-2">
-          <option value="TODOS">Todos</option>
-          <option value="ENTRADA">Entrada</option>
-          <option value="SAIDA">Saída</option>
-          <option value="TRANSFERENCIA">Transferência</option>
-        </select>
-        <input
-          placeholder="Filtro por produto"
-          value={produto}
-          onChange={(e) => setProduto(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="border rounded px-3 py-2">
-          <option value="-created_at">Ordenar: Recentes</option>
-          <option value="created_at">Ordenar: Antigos</option>
-        </select>
-        <select
-          value={pageSize}
-          onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
-          className="border rounded px-3 py-2"
-        >
-          <option value={10}>10</option>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-        </select>
-        <button onClick={() => { setPage(1); load() }} className="bg-black text-white rounded px-3 py-2">Filtrar</button>
-      </div>
-      {loading && <div>Carregando movimentações...</div>}
-      {error && <div className="text-red-600">{error}</div>}
-      {!loading && !error && (
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-2 border">Data</th>
-              <th className="text-left p-2 border">Tipo</th>
-              <th className="text-left p-2 border">Produto</th>
-              <th className="text-left p-2 border">Depósito</th>
-              <th className="text-left p-2 border">Lote</th>
-              <th className="text-left p-2 border">Quantidade</th>
-              <th className="text-left p-2 border">Valor Unit.</th>
-              <th className="text-left p-2 border">Valor Total</th>
-              <th className="text-left p-2 border">Documento</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data ?? []).map((m) => (
-              <tr key={m.id}>
-                <td className="p-2 border">{new Date(m.created_at).toLocaleString('pt-BR')}</td>
-                <td className="p-2 border">{m.tipo}</td>
-                <td className="p-2 border">{m.produto_nome}</td>
-                <td className="p-2 border">{m.deposito_nome}</td>
-                <td className="p-2 border">{m.lote_codigo ?? '-'}</td>
-                <td className="p-2 border">{m.quantidade}</td>
-                <td className="p-2 border">R$ {Number(m.valor_unitario).toFixed(2)}</td>
-                <td className="p-2 border">R$ {Number(m.valor_total).toFixed(2)}</td>
-                <td className="p-2 border">{m.documento ?? '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {!loading && !error && (
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="border rounded px-3 py-2 disabled:opacity-60"
-          >
-            Anterior
-          </button>
-          <span className="text-sm">Página {page}</span>
-          <button
-            disabled={(data?.length ?? 0) < pageSize}
-            onClick={() => setPage((p) => p + 1)}
-            className="border rounded px-3 py-2 disabled:opacity-60"
-          >
-            Próxima
-          </button>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="heading-1">Movimentações</h1>
+          <p className="text-gray-500 mt-1">Histórico de entradas, saídas e transferências</p>
         </div>
+      </div>
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <select 
+            value={tipo} 
+            onChange={(e) => setTipo(e.target.value)} 
+            className="input pl-10"
+          >
+            <option value="TODOS">Todas as Movimentações</option>
+            <option value="ENTRADA">Entrada</option>
+            <option value="SAIDA">Saída</option>
+            <option value="TRANSFERENCIA">Transferência</option>
+          </select>
+        </div>
+        <div className="relative md:col-span-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            placeholder="Filtrar por nome do produto"
+            value={produto}
+            onChange={(e) => setProduto(e.target.value)}
+            className="input pl-10"
+          />
+        </div>
+        <button onClick={() => { setPage(1); load() }} className="btn btn-primary w-full">
+           Filtrar
+        </button>
+      </div>
+
+      {loading && <div className="text-center py-8 text-gray-500">Carregando movimentações...</div>}
+      {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl mb-4">{error}</div>}
+
+      {!loading && !error && (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Produto</TableHead>
+                <TableHead>Origem/Lote</TableHead>
+                <TableHead>Qtd</TableHead>
+                <TableHead>Valor Total</TableHead>
+                <TableHead>Documento</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {movimentacoes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    Nenhuma movimentação encontrada.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                movimentacoes.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell>
+                      <div className="text-xs text-gray-500">
+                        {new Date(m.created_at).toLocaleDateString('pt-BR')}
+                      </div>
+                      <div className="text-xs font-medium text-gray-700">
+                        {new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`
+                        px-2 py-1 rounded-full text-xs font-bold
+                        ${m.tipo === 'ENTRADA' ? 'bg-green-100 text-green-700' : 
+                          m.tipo === 'SAIDA' ? 'bg-red-100 text-red-700' : 
+                          'bg-blue-100 text-blue-700'}
+                      `}>
+                        {m.tipo}
+                      </span>
+                    </TableCell>
+                    <TableCell><div className="font-medium text-gray-900">{m.produto_nome}</div></TableCell>
+                    <TableCell>
+                      <div className="text-sm">{m.deposito_nome}</div>
+                      {m.lote_codigo && <div className="text-xs text-gray-500 font-mono">Lote: {m.lote_codigo}</div>}
+                    </TableCell>
+                    <TableCell>
+                      <span className={m.tipo === 'SAIDA' ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
+                        {m.tipo === 'SAIDA' ? '-' : '+'}{m.quantidade}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-medium">{formatBRL(m.valor_total)}</TableCell>
+                    <TableCell>{m.documento ?? '-'}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+            hasMore={movimentacoes.length >= pageSize}
+          />
+        </>
       )}
     </div>
   )

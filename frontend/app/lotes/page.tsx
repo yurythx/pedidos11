@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { request } from '../../src/lib/http/request'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../src/components/ui/Table'
+import { Filter, Calendar } from 'lucide-react'
 
 type Lote = {
   id: string
@@ -45,62 +47,110 @@ export default function LotesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusValidade])
 
+  const lotes = data ?? []
+
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Lotes</h1>
-      <div className="grid grid-cols-5 gap-2 mb-3">
-        <input
-          type="date"
-          value={validadeMin}
-          onChange={(e) => setValidadeMin(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <input
-          type="date"
-          value={validadeMax}
-          onChange={(e) => setValidadeMax(e.target.value)}
-          className="border rounded px-3 py-2"
-        />
-        <select
-          value={statusValidade}
-          onChange={(e) => setStatusValidade(e.target.value)}
-          className="border rounded px-3 py-2"
-        >
-          <option value="TODOS">Todos</option>
-          <option value="OK">OK</option>
-          <option value="ATENCAO">Atenção</option>
-          <option value="CRITICO">Crítico</option>
-          <option value="VENCIDO">Vencido</option>
-        </select>
-        <button onClick={load} className="bg-black text-white rounded px-3 py-2">Filtrar</button>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="heading-1">Lotes</h1>
+          <p className="text-gray-500 mt-1">Controle de validade e rastreabilidade</p>
+        </div>
       </div>
-      {loading && <div>Carregando lotes...</div>}
-      {error && <div className="text-red-600">{error}</div>}
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div>
+          <label className="label">Validade Início</label>
+          <div className="relative">
+             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+             <input
+              type="date"
+              value={validadeMin}
+              onChange={(e) => setValidadeMin(e.target.value)}
+              className="input pl-10"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="label">Validade Fim</label>
+          <div className="relative">
+             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+             <input
+              type="date"
+              value={validadeMax}
+              onChange={(e) => setValidadeMax(e.target.value)}
+              className="input pl-10"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="label">Status</label>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={statusValidade}
+              onChange={(e) => setStatusValidade(e.target.value)}
+              className="input pl-10"
+            >
+              <option value="TODOS">Todos</option>
+              <option value="OK">OK</option>
+              <option value="ATENCAO">Atenção</option>
+              <option value="CRITICO">Crítico</option>
+              <option value="VENCIDO">Vencido</option>
+            </select>
+          </div>
+        </div>
+        <button onClick={load} className="btn btn-secondary w-full">
+           Filtrar
+        </button>
+      </div>
+
+      {loading && <div className="text-center py-8 text-gray-500">Carregando lotes...</div>}
+      {error && <div className="p-4 bg-red-50 text-red-600 rounded-xl mb-4">{error}</div>}
+
       {!loading && !error && (
-        <table className="w-full border">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="text-left p-2 border">Código</th>
-              <th className="text-left p-2 border">Produto</th>
-              <th className="text-left p-2 border">Depósito</th>
-              <th className="text-left p-2 border">Validade</th>
-              <th className="text-left p-2 border">Quantidade</th>
-              <th className="text-left p-2 border">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data ?? []).map((l) => (
-              <tr key={l.id}>
-                <td className="p-2 border">{l.codigo_lote}</td>
-                <td className="p-2 border">{l.produto_nome}</td>
-                <td className="p-2 border">{l.deposito_nome}</td>
-                <td className="p-2 border">{l.data_validade ? new Date(l.data_validade).toLocaleDateString('pt-BR') : '-'}</td>
-                <td className="p-2 border">{l.quantidade_atual}</td>
-                <td className="p-2 border">{l.status_validade ?? '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Código</TableHead>
+              <TableHead>Produto</TableHead>
+              <TableHead>Depósito</TableHead>
+              <TableHead>Validade</TableHead>
+              <TableHead>Quantidade</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lotes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  Nenhum lote encontrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              lotes.map((l) => (
+                <TableRow key={l.id}>
+                  <TableCell><span className="font-mono text-gray-600">{l.codigo_lote}</span></TableCell>
+                  <TableCell><div className="font-medium text-gray-900">{l.produto_nome}</div></TableCell>
+                  <TableCell>{l.deposito_nome}</TableCell>
+                  <TableCell>{l.data_validade ? new Date(l.data_validade).toLocaleDateString('pt-BR') : '-'}</TableCell>
+                  <TableCell>{l.quantidade_atual}</TableCell>
+                  <TableCell>
+                    <span className={`
+                      px-2.5 py-1 rounded-full text-xs font-bold
+                      ${l.status_validade === 'VENCIDO' ? 'bg-red-100 text-red-700' : 
+                        l.status_validade === 'CRITICO' ? 'bg-orange-100 text-orange-700' :
+                        l.status_validade === 'ATENCAO' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'}
+                    `}>
+                      {l.status_validade ?? '-'}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       )}
     </div>
   )
