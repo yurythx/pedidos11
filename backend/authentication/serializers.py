@@ -85,6 +85,7 @@ class UserSerializer(serializers.ModelSerializer):
     is_vendedor = serializers.ReadOnlyField()
     foto_perfil = serializers.ImageField(required=False, allow_null=True)
     telefone = serializers.CharField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, required=False)
     
     class Meta:
         model = CustomUser
@@ -92,6 +93,23 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name', 'telefone', 'foto_perfil',
             'empresa', 'empresa_nome', 'cargo', 'cargo_display',
             'is_admin', 'is_gerente', 'is_vendedor',
-            'is_active', 'is_staff', 'is_superuser'
+            'is_active', 'is_staff', 'is_superuser',
+            'password'
         ]
-        read_only_fields = ['id', 'is_active', 'is_staff', 'is_superuser']
+        read_only_fields = ['id', 'empresa', 'is_active', 'is_staff', 'is_superuser']
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        user = super().create(validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        user = super().update(instance, validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user

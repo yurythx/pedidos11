@@ -71,7 +71,7 @@ class ItemNFeSerializer(serializers.Serializer):
 class FornecedorNFeSerializer(serializers.Serializer):
     """Serializer para dados do fornecedor."""
     
-    cnpj = serializers.CharField(max_length=14)
+    cnpj = serializers.CharField(max_length=20)
     nome = serializers.CharField(max_length=200)
 
 
