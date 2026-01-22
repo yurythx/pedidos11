@@ -2,7 +2,35 @@
 Serializers para NFe - Projeto Nix.
 """
 from rest_framework import serializers
-from .models import ProdutoFornecedor
+from .models import ProdutoFornecedor, NotaFiscal, ItemNotaFiscal, StatusNFe
+
+
+class ItemNotaFiscalSerializer(serializers.ModelSerializer):
+    """Serializer para visualização dos itens da NFe."""
+    
+    class Meta:
+        model = ItemNotaFiscal
+        fields = '__all__'
+
+
+class NotaFiscalSerializer(serializers.ModelSerializer):
+    """Serializer para visualização de NFe."""
+    
+    itens = ItemNotaFiscalSerializer(many=True, read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    tipo_emissao_display = serializers.CharField(source='get_tipo_emissao_display', read_only=True)
+    
+    class Meta:
+        model = NotaFiscal
+        fields = '__all__'
+
+
+class GerarNFeSerializer(serializers.Serializer):
+    """Serializer para gerar NFe a partir de uma venda."""
+    
+    venda_id = serializers.UUIDField(help_text="ID da venda para gerar a NFe")
+    modelo = serializers.ChoiceField(choices=['55', '65'], default='55', help_text="55=NFe, 65=NFCe")
+    serie = serializers.CharField(default='1', max_length=3)
 
 
 class UploadXMLSerializer(serializers.Serializer):
@@ -75,6 +103,13 @@ class FornecedorNFeSerializer(serializers.Serializer):
     nome = serializers.CharField(max_length=200)
 
 
+class FinanceiroNFeSerializer(serializers.Serializer):
+    """Serializer para dados financeiros da NFe."""
+    
+    gerar_conta = serializers.BooleanField(default=True)
+    data_vencimento = serializers.DateField(required=False, allow_null=True)
+
+
 class ConfirmarImportacaoNFeSerializer(serializers.Serializer):
     """Serializer para payload de confirmação de importação."""
     
@@ -82,6 +117,7 @@ class ConfirmarImportacaoNFeSerializer(serializers.Serializer):
     numero_nfe = serializers.CharField(max_length=20, required=False, allow_null=True)
     serie_nfe = serializers.CharField(max_length=5, default='1')
     fornecedor = FornecedorNFeSerializer()
+    financeiro = FinanceiroNFeSerializer(required=False, allow_null=True)
     itens = ItemNFeSerializer(many=True)
     
     def validate_itens(self, value):

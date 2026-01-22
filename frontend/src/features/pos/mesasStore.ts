@@ -5,7 +5,7 @@ import type { Mesa } from '../../types'
 type MesasState = {
   mesas: Mesa[]
   setMesas: (m: Mesa[]) => void
-  setStatus: (id: number, status: Mesa['status']) => void
+  setStatus: (id: string, status: Mesa['status']) => void
 }
 
 export const useMesasStore = create<MesasState>()(

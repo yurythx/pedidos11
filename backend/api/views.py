@@ -415,6 +415,44 @@ class VendaViewSet(TenantFilteredViewSet):
             return VendaCreateSerializer
         return VendaDetailSerializer
     
+    @action(detail=False, methods=['get'])
+    def comissoes(self, request):
+        """
+        Retorna relatório de comissões por colaborador.
+        
+        Query params:
+            - start_date (YYYY-MM-DD)
+            - end_date (YYYY-MM-DD)
+        """
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        if not start_date or not end_date:
+            return Response({'error': 'start_date e end_date são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from sales.models import StatusVenda
+        qs = self.get_queryset().filter(
+            status=StatusVenda.FINALIZADA,
+            data_finalizacao__date__gte=start_date,
+            data_finalizacao__date__lte=end_date
+        )
+        
+        # Agrupar por atendente
+        from django.db.models import Sum, Count, F
+        
+        # Comissões de Atendentes (Users)
+        comissoes = qs.exclude(atendente=None).values(
+            colaborador_id=F('atendente__id'),
+            colaborador_nome=F('atendente__first_name'),
+            colaborador_username=F('atendente__username')
+        ).annotate(
+            total_vendas=Count('id'),
+            valor_vendas=Sum('total_liquido'),
+            total_comissao=Sum('comissao_valor')
+        ).order_by('-total_comissao')
+        
+        return Response(comissoes)
+
     @action(detail=True, methods=['post'])
     def finalizar(self, request, pk=None):
         """

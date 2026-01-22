@@ -147,6 +147,13 @@ class Endereco(TenantModel):
         help_text='Município'
     )
     
+    codigo_municipio_ibge = models.CharField(
+        max_length=7,
+        blank=True,
+        verbose_name='Código IBGE',
+        help_text='Código do município no IBGE (7 dígitos) - Obrigatório para NFe'
+    )
+    
     uf = models.CharField(
         max_length=2,
         choices=UF.choices,

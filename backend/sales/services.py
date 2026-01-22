@@ -26,7 +26,7 @@ class VendaService:
     
     @staticmethod
     @transaction.atomic
-    def finalizar_venda(venda_id, deposito_id, usuario=None, usar_lotes=True, gerar_conta_receber=True):
+    def finalizar_venda(venda_id, deposito_id, usuario=None, usar_lotes=True, gerar_conta_receber=True, tipo_pagamento=None):
         """
         Finaliza uma venda e baixa o estoque correspondente.
         
@@ -48,6 +48,8 @@ class VendaService:
             deposito_id: UUID do depósito de onde sair o estoque
             usuario: Username do usuário finalizando (para auditoria)
             usar_lotes: Se True, usa controle FIFO. Se False, baixa sem lote (default: True)
+            gerar_conta_receber: Se True, gera financeiro (default: True)
+            tipo_pagamento: Forma de pagamento (opcional)
         
         Returns:
             Venda: Instância da venda finalizada
@@ -58,6 +60,9 @@ class VendaService:
         # Import tardio para evitar circular import
         from stock.models import Deposito
         from stock.services import StockService
+        from financial.services import CaixaService
+        from financial.models import TipoMovimentoCaixa
+        from authentication.models import CustomUser
         
         # 1. Busca venda com lock para prevenir race condition
         try:
@@ -127,14 +132,58 @@ class VendaService:
             )
         
         # 7. Atualiza status da venda
+        
+        # Cálculo de Comissão
+        # Prioridade: Atendente (User) > Colaborador (Legacy)
+        if venda.atendente:
+            percentual = venda.atendente.comissao_percentual
+            if percentual > 0:
+                venda.comissao_valor = (venda.total_liquido * percentual) / 100
+        elif venda.colaborador:
+            # Legacy: Partner model
+            percentual = venda.colaborador.comissao_percentual
+            venda.comissao_valor = (venda.total_liquido * percentual) / 100
+        elif venda.vendedor and hasattr(venda.vendedor, 'role_atendente') and venda.vendedor.role_atendente:
+            # Se vendedor é atendente e não foi definido atendente explícito
+            venda.atendente = venda.vendedor
+            percentual = venda.vendedor.comissao_percentual
+            if percentual > 0:
+                venda.comissao_valor = (venda.total_liquido * percentual) / 100
+        
         venda.status = StatusVenda.FINALIZADA
         venda.data_finalizacao = timezone.now()
-        venda.save(update_fields=['status', 'data_finalizacao', 'updated_at'])
+        venda.save(update_fields=['status', 'data_finalizacao', 'updated_at', 'colaborador', 'atendente', 'comissao_valor'])
         
         # 8. FATURAMENTO: Gera contas a receber automaticamente (à vista por padrão)
         if gerar_conta_receber:
             from financial.services import FinanceiroService
             FinanceiroService.gerar_conta_receber_venda(venda)
+        
+        # 9. CAIXA PDV: Validação e Registro
+        # REGRA: Toda venda finalizada deve ter um caixa aberto pelo operador (turno).
+        user_obj = None
+        if usuario:
+            if isinstance(usuario, CustomUser):
+                user_obj = usuario
+            elif isinstance(usuario, str):
+                user_obj = CustomUser.objects.filter(username=usuario).first()
+        
+        if not user_obj:
+            raise ValidationError("Usuário não identificado para validação de caixa.")
+
+        sessao = CaixaService.get_sessao_aberta(user_obj)
+        if not sessao:
+            raise ValidationError("Operador não possui caixa aberto. Abra o caixa para finalizar a venda.")
+            
+        # Registra movimento apenas se for Dinheiro (outros entram na conciliação do fechamento)
+        if tipo_pagamento == 'DINHEIRO':
+            CaixaService.registrar_movimento(
+                sessao=sessao,
+                tipo=TipoMovimentoCaixa.VENDA,
+                valor=venda.total_liquido,
+                descricao=f"Venda #{venda.numero}",
+                venda=venda
+            )
         
         return venda
     

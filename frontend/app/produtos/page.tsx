@@ -2,29 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { request } from '../../src/lib/http/request'
-import type { Paginacao } from '../../src/types'
+import type { Paginacao, Produto } from '../../src/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TablePagination } from '../../src/components/ui/Table'
 import { Search, Filter, Plus, Edit, Trash2 } from 'lucide-react'
 import { formatBRL } from '../../src/utils/currency'
 import Link from 'next/link'
 
-type ProdutoList = {
-  id: string
-  nome: string
-  sku: string | null
-  codigo_barras: string | null
-  categoria: string | null
-  categoria_nome: string | null
-  tipo: 'COMUM' | 'COMPOSTO' | 'INSUMO'
-  tipo_display: string
-  preco_venda: number
-  preco_custo: number | null
-  destaque: boolean
-  is_active: boolean
-}
-
 export default function ProdutosPage() {
-  const [data, setData] = useState<Paginacao<ProdutoList> | null>(null)
+  const [data, setData] = useState<Paginacao<Produto> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -41,7 +26,7 @@ export default function ProdutosPage() {
       if (tipo && tipo !== 'TODOS') params.set('tipo', tipo)
       params.set('page_size', String(pageSize))
       params.set('page', String(page))
-      const res = await request.get<Paginacao<ProdutoList>>(`/produtos/?${params.toString()}`)
+      const res = await request.get<Paginacao<Produto>>(`/produtos/?${params.toString()}`)
       setData(res)
     } catch (err: any) {
       setError(err?.message ?? 'Erro ao carregar produtos')

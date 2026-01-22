@@ -101,6 +101,7 @@ api.interceptors.response.use(
       const refresh = tokens.refresh
       if (!refresh) {
         useAuthStore.getState().logout()
+        if (typeof window !== 'undefined') window.location.href = '/login'
         return Promise.reject(error)
       }
       
@@ -144,6 +145,7 @@ api.interceptors.response.use(
         isRefreshing = false
         useAuthStore.getState().logout()
         onRefreshed(null)
+        if (typeof window !== 'undefined') window.location.href = '/login'
         return Promise.reject(refreshError)
       }
     }

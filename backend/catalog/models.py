@@ -151,6 +151,20 @@ class Categoria(TenantModel):
         return descendentes
 
 
+class UnidadeComercial(models.TextChoices):
+    """Unidades de Medida Comerciais."""
+    UNIDADE = 'UN', 'Unidade'
+    QUILOGRAMA = 'KG', 'Quilograma'
+    METRO = 'M', 'Metro'
+    METRO_QUADRADO = 'M2', 'Metro Quadrado'
+    METRO_CUBICO = 'M3', 'Metro Cúbico'
+    LITRO = 'L', 'Litro'
+    CAIXA = 'CX', 'Caixa'
+    FARDO = 'FD', 'Fardo'
+    DUZIA = 'DZ', 'Dúzia'
+    PAR = 'PR', 'Par'
+
+
 class Produto(TenantModel):
     """
     Produto do catálogo comercial.
@@ -196,6 +210,43 @@ class Produto(TenantModel):
         help_text='EAN, UPC ou qualquer código de barras'
     )
     
+    # Fiscal (NFe)
+    ncm = models.CharField(
+        max_length=8,
+        blank=True,
+        verbose_name='NCM',
+        help_text='Nomenclatura Comum do Mercosul (8 dígitos)'
+    )
+    
+    cest = models.CharField(
+        max_length=7,
+        blank=True,
+        verbose_name='CEST',
+        help_text='Código Especificador da Substituição Tributária'
+    )
+    
+    cfop_padrao = models.CharField(
+        max_length=4,
+        default='5102',
+        verbose_name='CFOP Padrão',
+        help_text='Código Fiscal de Operações e Prestações (Saída dentro do estado)'
+    )
+    
+    unidade_comercial = models.CharField(
+        max_length=10,
+        choices=UnidadeComercial.choices,
+        default=UnidadeComercial.UNIDADE,
+        verbose_name='Unidade Comercial',
+        help_text='Unidade de medida para venda na nota fiscal'
+    )
+
+    origem_mercadoria = models.CharField(
+        max_length=1,
+        default='0',
+        verbose_name='Origem',
+        help_text='0=Nacional, 1=Importada, etc.'
+    )
+
     # Classificação
     categoria = models.ForeignKey(
         Categoria,

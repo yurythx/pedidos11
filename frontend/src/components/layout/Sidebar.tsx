@@ -23,7 +23,9 @@ import {
   User, 
   LogOut, 
   ChevronLeft, 
-  ChevronRight 
+  DollarSign,
+  Wallet,
+  LayoutGrid
 } from 'lucide-react'
 
 // Map string names to components
@@ -42,7 +44,10 @@ const IconMap: Record<string, React.ElementType> = {
   'Container': Container,
   'UserCog': UserCog,
   'Settings': Settings,
-  'User': User
+  'User': User,
+  'DollarSign': DollarSign,
+  'Wallet': Wallet,
+  'LayoutGrid': LayoutGrid
 }
 
 export function Sidebar() {

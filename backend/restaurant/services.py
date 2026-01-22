@@ -25,13 +25,14 @@ class RestaurantService:
     
     @staticmethod
     @transaction.atomic
-    def abrir_mesa(mesa_id, garcom_user):
+    def abrir_mesa(mesa_id, garcom_user, atendente_user=None):
         """
         Abre uma mesa criando uma venda vinculada.
         
         Args:
             mesa_id: UUID da mesa
-            garcom_user: Instância de CustomUser (garçom)
+            garcom_user: Instância de CustomUser (quem abriu - logado)
+            atendente_user: Instância de CustomUser (garçom responsável - opcional)
         
         Returns:
             Venda: Venda criada e vinculada à mesa
@@ -54,10 +55,16 @@ class RestaurantService:
         if garcom_user.empresa != mesa.empresa:
             raise ValidationError("Garçom não pertence à mesma empresa da mesa")
         
+        # Define atendente
+        atendente = atendente_user
+        if not atendente and hasattr(garcom_user, 'role_atendente') and garcom_user.role_atendente:
+            atendente = garcom_user
+
         # Cria venda com status ORCAMENTO (não PENDENTE)
         venda = Venda.objects.create(
             empresa=mesa.empresa,
             vendedor=garcom_user,
+            atendente=atendente,
             status=StatusVenda.ORCAMENTO,
             observacoes=f"Mesa {mesa.numero}"
         )
@@ -68,38 +75,8 @@ class RestaurantService:
         return venda
     
     @staticmethod
-    @transaction.atomic
-    def adicionar_item_mesa(mesa_id, produto_id, quantidade, 
-                           complementos_list=None, observacao=''):
-        """
-        Adiciona item ao pedido da mesa.
-        
-        Args:
-            mesa_id: UUID da mesa
-            produto_id: UUID do produto
-            quantidade: Quantidade (Decimal)
-            complementos_list: Lista de dicts [{'complemento_id': uuid, 'quantidade': 1}, ...]
-            observacao: Observações do item (ex: "sem cebola")
-        
-        Returns:
-            ItemVenda: Item criado com complementos
-        
-        Raises:
-            ValidationError: Se mesa não tiver venda aberta, produto inválido, etc.
-        """
-        try:
-            mesa = Mesa.objects.select_for_update().get(id=mesa_id)
-        except Mesa.DoesNotExist:
-            raise ValidationError(f"Mesa com ID {mesa_id} não encontrada")
-        
-        # Validação: mesa deve ter venda aberta
-        if not mesa.venda_atual:
-            raise ValidationError(
-                f"Mesa {mesa.numero} não tem venda aberta. Use 'abrir_mesa' primeiro."
-            )
-        
-        venda = mesa.venda_atual
-        
+    def _adicionar_item_venda(venda, empresa, produto_id, quantidade, complementos_list=None, observacao=''):
+        """Helper para adicionar item a uma venda (usado por Mesa e Comanda)."""
         # Validação: venda não pode estar finalizada
         if venda.status not in [StatusVenda.ORCAMENTO, StatusVenda.PENDENTE]:
             raise ValidationError(
@@ -111,7 +88,7 @@ class RestaurantService:
         try:
             produto = Produto.objects.get(
                 id=produto_id,
-                empresa=mesa.empresa,
+                empresa=empresa,
                 is_active=True
             )
         except Produto.DoesNotExist:
@@ -125,7 +102,7 @@ class RestaurantService:
         
         # Cria item
         item = ItemVenda.objects.create(
-            empresa=mesa.empresa,
+            empresa=empresa,
             venda=venda,
             produto=produto,
             quantidade=Decimal(str(quantidade)),
@@ -142,17 +119,16 @@ class RestaurantService:
                 try:
                     complemento = Complemento.objects.get(
                         id=complemento_id,
-                        empresa=mesa.empresa,
+                        empresa=empresa,
                         is_active=True
                     )
                 except Complemento.DoesNotExist:
-                    # Rollback automático por @transaction.atomic
                     raise ValidationError(
                         f"Complemento com ID {complemento_id} não encontrado"
                     )
                 
                 ItemVendaComplemento.objects.create(
-                    empresa=mesa.empresa,
+                    empresa=empresa,
                     item_pai=item,
                     complemento=complemento,
                     quantidade=comp_quantidade,
@@ -160,6 +136,33 @@ class RestaurantService:
                 )
         
         return item
+
+    @staticmethod
+    @transaction.atomic
+    def adicionar_item_mesa(mesa_id, produto_id, quantidade, 
+                           complementos_list=None, observacao=''):
+        """
+        Adiciona item ao pedido da mesa.
+        """
+        try:
+            mesa = Mesa.objects.select_for_update().get(id=mesa_id)
+        except Mesa.DoesNotExist:
+            raise ValidationError(f"Mesa com ID {mesa_id} não encontrada")
+        
+        # Validação: mesa deve ter venda aberta
+        if not mesa.venda_atual:
+            raise ValidationError(
+                f"Mesa {mesa.numero} não tem venda aberta. Use 'abrir_mesa' primeiro."
+            )
+        
+        return RestaurantService._adicionar_item_venda(
+            venda=mesa.venda_atual,
+            empresa=mesa.empresa,
+            produto_id=produto_id,
+            quantidade=quantidade,
+            complementos_list=complementos_list,
+            observacao=observacao
+        )
     
     @staticmethod
     def _validar_complementos_obrigatorios(produto, complementos_list):
@@ -191,42 +194,94 @@ class RestaurantService:
     
     @staticmethod
     @transaction.atomic
-    def fechar_mesa(mesa_id, deposito_id):
+    def fechar_mesa(mesa_id, deposito_id, tipo_pagamento=None, usuario=None, valor_pago=None, colaborador_id=None, cpf_cliente=None):
         """
         Finaliza venda da mesa e baixa estoque.
         
         Args:
             mesa_id: UUID da mesa
             deposito_id: UUID do depósito para baixa de estoque
+            tipo_pagamento: Tipo de pagamento (opcional, atualiza venda)
+            usuario: Usuário que está fechando (para caixa)
+            valor_pago: Valor pago (opcional)
+            colaborador_id: ID do colaborador (garçom/atendente)
+            cpf_cliente: CPF do cliente para nota
         
         Returns:
             Venda: Venda finalizada
-        
-        Raises:
-            ValidationError: Se mesa não tiver venda ou venda vazia
         """
         try:
             mesa = Mesa.objects.select_for_update().get(id=mesa_id)
         except Mesa.DoesNotExist:
             raise ValidationError(f"Mesa com ID {mesa_id} não encontrada")
         
+        # ... (código existente de verificação de venda)
+        
         if not mesa.venda_atual:
             raise ValidationError(f"Mesa {mesa.numero} não tem venda aberta")
         
         venda = mesa.venda_atual
+
+        # Atualiza cliente se CPF informado
+        if cpf_cliente:
+            from partners.models import Cliente
+            # Remove pontuação
+            cpf_limpo = ''.join(filter(str.isdigit, cpf_cliente))
+            
+            if cpf_limpo:
+                cliente = Cliente.objects.filter(cpf_cnpj=cpf_limpo, empresa=mesa.empresa).first()
+                if not cliente:
+                    cliente = Cliente.objects.create(
+                        empresa=mesa.empresa,
+                        nome=f"Consumidor {cpf_limpo}",
+                        cpf_cnpj=cpf_limpo,
+                        tipo_pessoa='FISICA'
+                    )
+                venda.cliente = cliente
+                venda.save(update_fields=['cliente'])
+        
+        # Define colaborador se informado (sobreescreve ou define atendente)
+        if colaborador_id:
+            try:
+                from authentication.models import CustomUser
+                colaborador = CustomUser.objects.get(id=colaborador_id, empresa=mesa.empresa)
+                venda.atendente = colaborador
+                venda.save(update_fields=['atendente'])
+            except CustomUser.DoesNotExist:
+                pass # Ignora se não achar
+        
+        # Atualiza tipo de pagamento se fornecido
+        if tipo_pagamento:
+            venda.tipo_pagamento = tipo_pagamento
+            venda.save(update_fields=['tipo_pagamento'])
         
         # Validação: venda deve ter itens
         if not venda.itens.exists():
-            raise ValidationError(
-                f"Venda #{venda.numero} não tem itens. Não é possível finalizar."
-            )
+            # Se não tem itens, cancela a ocupação e libera a mesa
+            venda.status = StatusVenda.CANCELADA
+            venda.observacoes = (venda.observacoes or "") + " | Cancelada: Sem consumo"
+            venda.save()
+            
+            mesa.status = StatusMesa.LIVRE
+            mesa.venda_atual = None
+            mesa.save()
+            
+            return venda
         
         # Usa VendaService para finalizar (baixa estoque, atualiza status)
         from sales.services import VendaService
+        from django.conf import settings
+        
+        # Lê configuração de lotes (padrão True se não definido)
+        usar_lotes = getattr(settings, 'ESTOQUE_USAR_LOTES', True)
+        
         venda_finalizada = VendaService.finalizar_venda(
             venda_id=venda.id,
             deposito_id=deposito_id,
-            usuario='sistema'
+            usuario=usuario or 'sistema', # Passa usuário
+            usar_lotes=usar_lotes,
+            tipo_pagamento=tipo_pagamento,
+            valor_pago=valor_pago
         )
         
         # Libera mesa (suja para limpeza)
@@ -251,9 +306,25 @@ class RestaurantService:
             raise ValidationError(f"Mesa com ID {mesa_id} não encontrada")
         
         if mesa.status != StatusMesa.SUJA:
-            raise ValidationError(
-                f"Apenas mesas SUJAS podem ser liberadas (status atual: {mesa.get_status_display()})"
+            # Permite liberar mesa OCUPADA se não tiver itens (cancelamento implícito)
+            eh_cancelamento = (
+                mesa.status == StatusMesa.OCUPADA and 
+                mesa.venda_atual and 
+                not mesa.venda_atual.itens.exists()
             )
+            
+            if not eh_cancelamento:
+                raise ValidationError(
+                    f"Apenas mesas SUJAS podem ser liberadas (status atual: {mesa.get_status_display()})"
+                )
+        
+        # Se for cancelamento de mesa ocupada, cancela a venda também
+        if mesa.status == StatusMesa.OCUPADA and mesa.venda_atual:
+            venda = mesa.venda_atual
+            venda.status = StatusVenda.CANCELADA
+            venda.observacoes = (venda.observacoes or "") + " | Liberada manualmente sem consumo"
+            venda.save()
+            mesa.venda_atual = None
         
         mesa.liberar()
     
@@ -300,6 +371,35 @@ class RestaurantService:
         return (mesa_origem, mesa_destino)
     
     @staticmethod
+    @transaction.atomic
+    def remover_item_mesa(mesa_id, item_id):
+        """
+        Remove item da venda da mesa (cancelamento).
+        
+        Args:
+            mesa_id: UUID da mesa
+            item_id: UUID do item a remover
+        """
+        try:
+            mesa = Mesa.objects.get(id=mesa_id)
+        except Mesa.DoesNotExist:
+            raise ValidationError(f"Mesa com ID {mesa_id} não encontrada")
+            
+        if not mesa.venda_atual:
+            raise ValidationError("Mesa não tem venda aberta")
+            
+        try:
+            item = ItemVenda.objects.get(id=item_id, venda=mesa.venda_atual)
+        except ItemVenda.DoesNotExist:
+             raise ValidationError("Item não encontrado nesta venda")
+             
+        # Só permite remover se venda estiver aberta (ORCAMENTO)
+        if mesa.venda_atual.status != StatusVenda.ORCAMENTO:
+            raise ValidationError("Não é possível remover itens de uma venda fechada/finalizada")
+
+        item.delete()
+
+    @staticmethod
     def obter_resumo_conta(mesa_id):
         """
         Retorna resumo da conta da mesa.
@@ -335,6 +435,7 @@ class RestaurantService:
             'quantidade_itens': venda.quantidade_itens,
             'itens': [
                 {
+                    'id': str(item.id),
                     'produto': item.produto.nome,
                     'quantidade': item.quantidade,
                     'preco_unitario': item.preco_unitario,
@@ -361,7 +462,7 @@ class ComandaService:
     
     @staticmethod
     @transaction.atomic
-    def abrir_comanda(comanda_id, garcom_user):
+    def abrir_comanda(comanda_id, garcom_user, atendente_user=None):
         """Abre comanda (mesmo padrão de abrir_mesa)."""
         try:
             comanda = Comanda.objects.select_for_update().get(id=comanda_id)
@@ -376,9 +477,15 @@ class ComandaService:
         if garcom_user.empresa != comanda.empresa:
             raise ValidationError("Garçom não pertence à mesma empresa")
         
+        # Define atendente
+        atendente = atendente_user
+        if not atendente and hasattr(garcom_user, 'role_atendente') and garcom_user.role_atendente:
+            atendente = garcom_user
+
         venda = Venda.objects.create(
             empresa=comanda.empresa,
             vendedor=garcom_user,
+            atendente=atendente,
             status=StatusVenda.ORCAMENTO,
             observacoes=f"Comanda {comanda.codigo}"
         )
@@ -415,7 +522,7 @@ class ComandaService:
     
     @staticmethod
     @transaction.atomic
-    def fechar_comanda(comanda_id, deposito_id):
+    def fechar_comanda(comanda_id, deposito_id, tipo_pagamento=None, usuario=None, valor_pago=None, colaborador_id=None, cpf_cliente=None):
         """Fecha comanda e finaliza venda."""
         try:
             comanda = Comanda.objects.select_for_update().get(id=comanda_id)
@@ -427,6 +534,32 @@ class ComandaService:
         
         venda = comanda.venda_atual
         
+        # Atualiza cliente se CPF informado
+        if cpf_cliente:
+            from partners.models import Cliente
+            cpf_limpo = ''.join(filter(str.isdigit, cpf_cliente))
+            if cpf_limpo:
+                cliente = Cliente.objects.filter(cpf_cnpj=cpf_limpo, empresa=comanda.empresa).first()
+                if not cliente:
+                    cliente = Cliente.objects.create(
+                        empresa=comanda.empresa,
+                        nome=f"Consumidor {cpf_limpo}",
+                        cpf_cnpj=cpf_limpo,
+                        tipo_pessoa='FISICA'
+                    )
+                venda.cliente = cliente
+                venda.save(update_fields=['cliente'])
+        
+        # Define colaborador
+        if colaborador_id:
+            try:
+                from authentication.models import CustomUser
+                colaborador = CustomUser.objects.get(id=colaborador_id, empresa=comanda.empresa)
+                venda.atendente = colaborador
+                venda.save(update_fields=['atendente'])
+            except CustomUser.DoesNotExist:
+                pass
+
         if not venda.itens.exists():
             raise ValidationError("Venda não tem itens")
         
@@ -434,9 +567,33 @@ class ComandaService:
         venda_finalizada = VendaService.finalizar_venda(
             venda_id=venda.id,
             deposito_id=deposito_id,
-            usuario='sistema'
+            usuario=usuario or 'sistema',
+            tipo_pagamento=tipo_pagamento,
+            valor_pago=valor_pago
         )
         
         comanda.liberar()
         
         return venda_finalizada
+
+    @staticmethod
+    @transaction.atomic
+    def remover_item_comanda(comanda_id, item_id):
+        """Remove item da comanda."""
+        try:
+            comanda = Comanda.objects.get(id=comanda_id)
+        except Comanda.DoesNotExist:
+            raise ValidationError(f"Comanda {comanda_id} não encontrada")
+            
+        if not comanda.venda_atual:
+            raise ValidationError("Comanda não tem venda aberta")
+            
+        try:
+            item = ItemVenda.objects.get(id=item_id, venda=comanda.venda_atual)
+        except ItemVenda.DoesNotExist:
+             raise ValidationError("Item não encontrado")
+             
+        if comanda.venda_atual.status != StatusVenda.ORCAMENTO:
+            raise ValidationError("Venda fechada")
+
+        item.delete()

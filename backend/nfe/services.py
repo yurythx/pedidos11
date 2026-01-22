@@ -4,27 +4,273 @@ Service Layer para importação de NFe - Projeto Nix.
 import uuid
 from django.db import transaction
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from decimal import Decimal
 
 from catalog.models import Produto, TipoProduto
 from partners.models import Fornecedor
 from stock.models import Deposito, Movimentacao, TipoMovimentacao
 from stock.services import StockService
-from .models import ProdutoFornecedor
+from financial.models import ContaPagar, StatusConta
+from sales.models import Venda
+from tenant.models import Empresa
+from datetime import date, timedelta
+from django.db.models import Max
+from .models import ProdutoFornecedor, NotaFiscal, ItemNotaFiscal, StatusNFe, TipoEmissao, FinalidadeNFe
+from sales.models import Venda, StatusVenda
+from .builders.nfe_builder import NFeBuilder
+from .signing.signer import NFeSigner
+from .transport.sefaz_client import SefazClient
 
 
 class NFeService:
     """
-    Service responsável por processar importação de NFe.
+    Service responsável por processar importação e emissão de NFe.
     
     Implementa lógica robusta de:
     - Validação de dados
     - Criação de vínculos produto-fornecedor
     - Integração com StockService (lotes + FIFO)
     - Idempotência (evita duplicação)
-    - Tratamento de erros parciais
+    - Geração de NFe a partir de Venda
     """
     
+    @staticmethod
+    @transaction.atomic
+    def gerar_nfe_de_venda(empresa, venda_id, usuario, modelo='55', serie='1'):
+        """
+        Gera uma NFe a partir de uma venda finalizada.
+        
+        Args:
+            empresa: Empresa do usuário
+            venda_id: ID da venda
+            usuario: Usuário que solicitou a emissão
+            modelo: Modelo da nota (55=NFe, 65=NFCe)
+            serie: Série da nota
+            
+        Returns:
+            NotaFiscal: Instância da nota criada
+            
+        Raises:
+            ValidationError: Se dados inválidos ou venda não apta
+        """
+        # 1. Buscar Venda
+        try:
+            venda = Venda.objects.select_related('cliente', 'cliente__empresa').get(
+                id=venda_id,
+                empresa=empresa
+            )
+        except Venda.DoesNotExist:
+            raise ValidationError("Venda não encontrada.")
+            
+        # 2. Validar se pode gerar NFe
+        if venda.status != StatusVenda.FINALIZADA:
+            raise ValidationError("Apenas vendas finalizadas podem gerar NFe.")
+            
+        if venda.notas_fiscais.filter(status__in=[StatusNFe.AUTORIZADA]).exists():
+            raise ValidationError("Esta venda já possui NFe autorizada.")
+            
+        # 3. Validar dados cadastrais (Emitente e Destinatário)
+        NFeService._validar_dados_emissao(empresa, venda.cliente)
+        
+        # 4. Gerar número da nota
+        numero_nota = NFeService._gerar_numero_nfe(empresa, serie, modelo)
+        
+        # 5. Criar NotaFiscal
+        nota = NotaFiscal(
+            empresa=empresa,
+            venda=venda,
+            cliente=venda.cliente,
+            modelo=modelo,
+            serie=serie,
+            numero=numero_nota,
+            status=StatusNFe.DIGITACAO,
+            tipo_emissao=TipoEmissao.NORMAL,
+            data_emissao=timezone.now(),
+            
+            # Totais
+            valor_total_produtos=venda.total_bruto,
+            valor_desconto=venda.total_desconto,
+            valor_total_nota=venda.total_liquido,
+            
+            ambiente=empresa.ambiente_nfe,
+            finalidade=FinalidadeNFe.NORMAL,
+            natureza_operacao='VENDA DE MERCADORIA'
+        )
+        nota.save()
+        
+        # 6. Criar Itens da Nota
+        itens_nota = []
+        for i, item_venda in enumerate(venda.itens.select_related('produto').all(), start=1):
+            produto = item_venda.produto
+            
+            # Validações básicas do produto para NFe
+            if not produto.ncm:
+                raise ValidationError(f"Produto {produto.nome} sem NCM configurado.")
+                
+            item_nota = ItemNotaFiscal(
+                empresa=empresa,
+                nota=nota,
+                produto=produto,
+                numero_item=i,
+                codigo_produto=getattr(produto, 'sku', '') or str(produto.id),
+                descricao_produto=produto.nome,
+                ncm=produto.ncm,
+                cfop=produto.cfop_padrao or '5102',
+                unidade_comercial=getattr(produto, 'unidade_comercial', 'UN'),
+                quantidade=item_venda.quantidade,
+                valor_unitario=item_venda.preco_unitario,
+                valor_total=item_venda.subtotal,
+                # Impostos simplificados para MVP (Simples Nacional)
+                origem=getattr(produto, 'origem_mercadoria', '0'),
+                csosn='102', # Tributada pelo Simples Nacional sem permissão de crédito
+            )
+            itens_nota.append(item_nota)
+            
+        ItemNotaFiscal.objects.bulk_create(itens_nota)
+        
+        # Atualizar número da última NFe na empresa
+        empresa.numero_nfe_atual = numero_nota
+        empresa.save(update_fields=['numero_nfe_atual'])
+        
+        return nota
+
+    @staticmethod
+    def gerar_xml(nota_id, empresa):
+        """
+        Gera o XML da NFe.
+        
+        Args:
+            nota_id: ID da nota fiscal
+            empresa: Empresa do usuário (para segurança)
+            
+        Returns:
+            str: Conteúdo do XML gerado
+        """
+        try:
+            nota = NotaFiscal.objects.get(id=nota_id, empresa=empresa)
+        except NotaFiscal.DoesNotExist:
+            raise ValidationError("Nota Fiscal não encontrada.")
+            
+        builder = NFeBuilder(nota)
+        xml_content = builder.build()
+        
+        # Assinar XML se empresa tiver certificado
+        if empresa.certificado_digital:
+            try:
+                # Carregar certificado
+                with empresa.certificado_digital.open('rb') as f:
+                    cert_bytes = f.read()
+                
+                signer = NFeSigner(cert_bytes, empresa.senha_certificado)
+                xml_content = signer.sign_nfe(xml_content)
+                
+                nota.status = StatusNFe.ASSINADA
+            except Exception as e:
+                # Se falhar assinatura, mantém validada mas não assinada
+                # Logar erro se necessário
+                print(f"Erro ao assinar NFe: {e}")
+                nota.status = StatusNFe.VALIDADA
+        else:
+            nota.status = StatusNFe.VALIDADA
+
+        # Salvar XML gerado
+        nota.xml_envio = xml_content
+        nota.save(update_fields=['xml_envio', 'status', 'chave_acesso'])
+        
+        return xml_content
+
+    @staticmethod
+    def consultar_recibo(recibo, empresa):
+        """
+        Consulta o recibo na SEFAZ e atualiza a nota se encontrar protocolo.
+        
+        Args:
+            recibo: Número do recibo
+            empresa: Empresa do usuário
+            
+        Returns:
+            Dict com resultado
+        """
+        client = SefazClient(empresa)
+        retorno = client.consultar_recibo(recibo)
+        
+        if 'protocolo' in retorno:
+            prot = retorno['protocolo']
+            # Tenta achar a nota pela chave ou recibo (se tivéssemos salvo o recibo na nota)
+            # Como não salvamos recibo na nota ainda (falha minha no model), vamos tentar achar pelo xml se possível
+            # Ou o chamador deve passar a nota.
+            # Idealmente: NotaFiscal tem campo 'recibo'.
+            
+            # Vamos assumir que quem chama sabe qual nota é, ou atualizamos a nota se o protocolo bater.
+            # O protocolo tem chNFe.
+            chave = prot.get('chNFe')
+            if chave:
+                try:
+                    nota = NotaFiscal.objects.get(chave_acesso=chave, empresa=empresa)
+                    if prot['cStat'] == '100':
+                        nota.status = StatusNFe.AUTORIZADA
+                        nota.protocolo_autorizacao = prot['nProt']
+                        nota.xml_processado = prot['xml_prot']
+                        nota.save(update_fields=['status', 'protocolo_autorizacao', 'xml_processado'])
+                    elif prot['cStat'] in ['110', '301', '302']: # Denegada
+                        nota.status = StatusNFe.DENEGADA
+                        nota.observacoes = f"Denegada: {prot['xMotivo']}"
+                        nota.save(update_fields=['status', 'observacoes'])
+                    else:
+                        # Rejeitada
+                        nota.status = StatusNFe.REJEITADA
+                        nota.observacoes = f"Rejeitada ({prot['cStat']}): {prot['xMotivo']}"
+                        nota.save(update_fields=['status', 'observacoes'])
+                except NotaFiscal.DoesNotExist:
+                    pass
+                    
+        return retorno
+
+    @staticmethod
+    def _validar_dados_emissao(empresa, cliente):
+        """Valida dados obrigatórios para emissão de NFe."""
+        # Validar Empresa (Emitente)
+        if not empresa.inscricao_estadual:
+            raise ValidationError("Empresa sem Inscrição Estadual configurada.")
+        if not empresa.certificado_digital:
+            # Apenas warning por enquanto, ou erro se for obrigatório ter o cert para criar o registro
+            pass 
+            
+        # Validar Cliente (Destinatário)
+        if not cliente:
+            raise ValidationError("Venda sem cliente identificado (obrigatório para NFe).")
+        if not cliente.cpf_cnpj:
+            raise ValidationError("Cliente sem CPF/CNPJ.")
+            
+        # Validar Endereço do Cliente
+        endereco = cliente.enderecos.filter(tipo='FISICO').first() or cliente.enderecos.first()
+        if not endereco:
+            raise ValidationError("Cliente sem endereço cadastrado.")
+        if not endereco.codigo_municipio_ibge:
+            raise ValidationError("Endereço do cliente sem código IBGE do município.")
+        if not endereco.logradouro or not endereco.numero or not endereco.bairro or not endereco.cep or not endereco.cidade or not endereco.uf:
+             raise ValidationError("Endereço do cliente incompleto (Logradouro, Número, Bairro, CEP, Cidade, UF obrigatórios).")
+
+    @staticmethod
+    def _gerar_numero_nfe(empresa, serie, modelo):
+        """Gera próximo número de NFe para a série."""
+        # Tenta pegar do contador da empresa primeiro
+        proximo_numero = empresa.numero_nfe_atual + 1
+        
+        # Verifica se já existe na tabela de notas (segurança extra)
+        # Se houver gap ou se o contador estiver desatualizado
+        ultimo_banco = NotaFiscal.objects.filter(
+            empresa=empresa,
+            serie=serie,
+            modelo=modelo
+        ).aggregate(Max('numero'))['numero__max']
+        
+        if ultimo_banco and ultimo_banco >= proximo_numero:
+            proximo_numero = ultimo_banco + 1
+            
+        return proximo_numero
+
     @staticmethod
     @transaction.atomic
     def efetivar_importacao_nfe(empresa, payload, usuario):
@@ -183,6 +429,36 @@ class NFeService:
                 }
                 resultado['erros'].append(erro)
                 # Continua processando outros itens
+        
+        # 7. Gerar Conta a Pagar
+        financeiro = payload.get('financeiro') or {}
+        if financeiro.get('gerar_conta', True) and resultado['itens_processados']:
+            try:
+                total_nfe = Decimal('0.00')
+                for item in itens:
+                    qtd = Decimal(str(item.get('qtd_xml', 0)))
+                    custo = Decimal(str(item.get('preco_custo', 0)))
+                    total_nfe += qtd * custo
+                
+                if total_nfe > 0:
+                    vencimento = financeiro.get('data_vencimento')
+                    if not vencimento:
+                        vencimento = date.today() + timedelta(days=30)
+                    
+                    ContaPagar.objects.create(
+                        empresa=empresa,
+                        fornecedor=fornecedor,
+                        descricao=f"Importação NFe {numero_nfe} - Série {serie_nfe}",
+                        valor_original=total_nfe,
+                        data_emissao=date.today(),
+                        data_vencimento=vencimento,
+                        status=StatusConta.PENDENTE,
+                        categoria="COMPRA_ESTOQUE",
+                        observacoes=f"Gerado automaticamente pela importação da NFe {documento}"
+                    )
+                    resultado['conta_pagar_criada'] = True
+            except Exception as e:
+                resultado['erro_financeiro'] = str(e)
         
         return resultado
     

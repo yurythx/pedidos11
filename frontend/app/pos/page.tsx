@@ -1,73 +1,93 @@
 'use client'
-import React, { useEffect, useState } from 'react'
-import { ProductGrid } from '../../src/features/pos/components/ProductGrid'
-import { CartPanel } from '../../src/features/pos/components/CartPanel'
-import { useCartStore } from '../../src/features/pos/cartStore'
-import { ShoppingCart, X } from 'lucide-react'
+import React from 'react'
+import Link from 'next/link'
+import { ShoppingBag, Utensils, Receipt, ArrowRight, CreditCard } from 'lucide-react'
 
-export default function PosPage() {
-  const { increment, decrement, clear, items } = useCartStore()
-  const [showMobileCart, setShowMobileCart] = useState(false)
-
-  // Total items for badge
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === '+') increment(Number.NaN)
-      if (e.key === '-') decrement(Number.NaN)
-      if (e.key === 'Escape') clear()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [increment, decrement, clear])
-
+export default function PosHomePage() {
   return (
-    <div className="flex flex-col md:flex-row w-full h-[calc(100vh-6rem)] gap-4 relative">
-      {/* Product Grid Area */}
-      <div className="flex-1 overflow-hidden h-full">
-        <ProductGrid />
+    <div className="flex flex-col items-center justify-center h-full p-8 gap-8 animate-in fade-in zoom-in-95 duration-500">
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-extrabold text-gray-800 tracking-tight">Ponto de Venda</h1>
+        <p className="text-gray-500 text-lg">Selecione o modo de operação para iniciar</p>
       </div>
 
-      {/* Desktop Cart Panel */}
-      <div className="hidden md:block w-96 h-full">
-        <CartPanel />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-7xl">
+        {/* Card Balcão */}
+        <Link href="/pos/balcao" className="group relative overflow-hidden bg-white border border-blue-100 rounded-3xl p-8 shadow-xl shadow-blue-50 hover:shadow-2xl hover:shadow-blue-100 hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+            <ShoppingBag className="w-32 h-32 text-blue-600" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                <ShoppingBag className="w-8 h-8" />
+            </div>
+            
+            <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">Venda Balcão</h2>
+                <p className="text-gray-500 font-medium text-sm">Venda rápida direta no caixa, sem vínculo com mesas. Ideal para delivery e retirada.</p>
+            </div>
+
+            <div className="flex items-center text-blue-600 font-bold group-hover:gap-2 transition-all">
+                Acessar Caixa <ArrowRight className="w-5 h-5 ml-2" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Card Salão */}
+        <Link href="/pos/salao" className="group relative overflow-hidden bg-white border border-orange-100 rounded-3xl p-8 shadow-xl shadow-orange-50 hover:shadow-2xl hover:shadow-orange-100 hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Utensils className="w-32 h-32 text-orange-600" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+            <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center shadow-inner">
+                <Utensils className="w-8 h-8" />
+            </div>
+            
+            <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-orange-600 transition-colors">Mesas</h2>
+                <p className="text-gray-500 font-medium text-sm">Controle visual de mesas, mapa de salão e pedidos por mesa.</p>
+            </div>
+
+            <div className="flex items-center text-orange-600 font-bold group-hover:gap-2 transition-all">
+                Acessar Salão <ArrowRight className="w-5 h-5 ml-2" />
+            </div>
+          </div>
+        </Link>
+
+        {/* Card Comandas */}
+        <Link href="/pos/comandas" className="group relative overflow-hidden bg-white border border-purple-100 rounded-3xl p-8 shadow-xl shadow-purple-50 hover:shadow-2xl hover:shadow-purple-100 hover:-translate-y-1 transition-all duration-300">
+          <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+            <CreditCard className="w-32 h-32 text-purple-600" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+            <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center shadow-inner">
+                <CreditCard className="w-8 h-8" />
+            </div>
+            
+            <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-purple-600 transition-colors">Comandas</h2>
+                <p className="text-gray-500 font-medium text-sm">Controle individual por cartão/ficha. Ideal para baladas e eventos.</p>
+            </div>
+
+            <div className="flex items-center text-purple-600 font-bold group-hover:gap-2 transition-all">
+                Acessar Comandas <ArrowRight className="w-5 h-5 ml-2" />
+            </div>
+          </div>
+        </Link>
       </div>
 
-      {/* Mobile Cart Toggle Button */}
-      <button
-        onClick={() => setShowMobileCart(true)}
-        className="md:hidden fixed bottom-6 right-6 bg-primary text-white p-4 rounded-full shadow-lg z-30 flex items-center justify-center"
-      >
-        <ShoppingCart className="w-6 h-6" />
-        {totalItems > 0 && (
-          <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
-            {totalItems}
-          </span>
-        )}
-      </button>
-
-      {/* Mobile Cart Overlay/Drawer */}
-      {showMobileCart && (
-        <div className="fixed inset-0 z-50 md:hidden flex flex-col bg-white animate-in slide-in-from-bottom duration-300">
-          <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              Carrinho ({totalItems})
-            </h2>
-            <button 
-              onClick={() => setShowMobileCart(false)}
-              className="p-2 bg-gray-200 rounded-full hover:bg-gray-300"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-auto p-4">
-            <CartPanel />
-          </div>
+      <div className="mt-8 flex gap-4 text-sm text-gray-400">
+        <div className="flex items-center gap-2">
+            <Receipt className="w-4 h-4" /> Histórico de Vendas
         </div>
-      )}
+        <span>•</span>
+        <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div> Sistema Online
+        </div>
+      </div>
     </div>
   )
 }
-

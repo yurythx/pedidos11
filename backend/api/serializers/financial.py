@@ -2,7 +2,7 @@
 Serializers para módulo Financial (Financeiro).
 """
 from rest_framework import serializers
-from financial.models import ContaReceber, ContaPagar
+from financial.models import ContaReceber, ContaPagar, Caixa, SessaoCaixa, MovimentoCaixa
 
 
 class ContaReceberSerializer(serializers.ModelSerializer):
@@ -49,3 +49,40 @@ class ContaPagarSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class CaixaSerializer(serializers.ModelSerializer):
+    """Serializer para Caixa."""
+    
+    class Meta:
+        model = Caixa
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class MovimentoCaixaSerializer(serializers.ModelSerializer):
+    """Serializer para Movimento de Caixa."""
+    
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+    
+    class Meta:
+        model = MovimentoCaixa
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'data_hora']
+
+
+class SessaoCaixaSerializer(serializers.ModelSerializer):
+    """Serializer para Sessão de Caixa (Abertura/Fechamento)."""
+    
+    operador_nome = serializers.CharField(source='operador.username', read_only=True)
+    caixa_nome = serializers.CharField(source='caixa.nome', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    diferenca_caixa = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    
+    # Não incluir movimentos por padrão para não pesar na listagem
+    # movimentos = MovimentoCaixaSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = SessaoCaixa
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'data_abertura', 'data_fechamento', 'saldo_final_calculado', 'status']

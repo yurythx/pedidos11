@@ -402,3 +402,190 @@ class ContaPagar(TenantModel):
             raise ValidationError({
                 'data_pagamento': 'Data de pagamento é obrigatória para contas pagas'
             })
+
+
+# === CAIXA PDV ===
+
+class Caixa(TenantModel):
+    """
+    Ponto de venda físico ou lógico.
+    Ex: Caixa 01, Caixa Bar, Caixa Delivery.
+    """
+    nome = models.CharField(
+        max_length=50,
+        verbose_name="Nome do Caixa",
+        help_text="Identificação do caixa (ex: Caixa 01)"
+    )
+    serial = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Serial/ID",
+        help_text="Identificador único ou serial do equipamento (opcional)"
+    )
+    ativo = models.BooleanField(
+        default=True,
+        verbose_name="Ativo",
+        help_text="Se o caixa está disponível para uso"
+    )
+
+    class Meta:
+        verbose_name = "Caixa"
+        verbose_name_plural = "Caixas"
+        unique_together = [['empresa', 'nome']]
+
+    def __str__(self):
+        return self.nome
+
+
+class StatusSessao(models.TextChoices):
+    """Status da sessão de caixa."""
+    ABERTA = 'ABERTA', 'Aberta'
+    FECHADA = 'FECHADA', 'Fechada'
+
+
+class SessaoCaixa(TenantModel):
+    """
+    Sessão de trabalho de um operador no caixa (Turno).
+    Registra abertura, fechamento e totais.
+    """
+    caixa = models.ForeignKey(
+        Caixa,
+        on_delete=models.PROTECT,
+        related_name='sessoes',
+        verbose_name="Caixa"
+    )
+    operador = models.ForeignKey(
+        'authentication.CustomUser',
+        on_delete=models.PROTECT,
+        related_name='sessoes_caixa',
+        verbose_name="Operador"
+    )
+    
+    data_abertura = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Data de Abertura"
+    )
+    data_fechamento = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Fechamento"
+    )
+    
+    saldo_inicial = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Saldo Inicial (Fundo de Troco)"
+    )
+    
+    saldo_final_informado = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Saldo Final Informado",
+        help_text="Valor contado fisicamente pelo operador no fechamento"
+    )
+    
+    saldo_final_calculado = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Saldo Final Calculado",
+        help_text="Valor esperado pelo sistema (Inicial + Vendas - Sangrias + Suprimentos)"
+    )
+    
+    status = models.CharField(
+        max_length=20,
+        choices=StatusSessao.choices,
+        default=StatusSessao.ABERTA,
+        verbose_name="Status"
+    )
+    
+    observacoes = models.TextField(
+        blank=True,
+        verbose_name="Observações"
+    )
+
+    class Meta:
+        verbose_name = "Sessão de Caixa"
+        verbose_name_plural = "Sessões de Caixa"
+        ordering = ['-data_abertura']
+        indexes = [
+            models.Index(fields=['empresa', 'status']),
+            models.Index(fields=['empresa', 'operador']),
+            models.Index(fields=['empresa', 'data_abertura']),
+        ]
+
+    def __str__(self):
+        return f"Sessão #{self.id} - {self.operador} ({self.status})"
+        
+    @property
+    def diferenca_caixa(self):
+        """Calcula diferença (sobra/falta)."""
+        if self.saldo_final_informado is None or self.saldo_final_calculado is None:
+            return None
+        return self.saldo_final_informado - self.saldo_final_calculado
+
+
+class TipoMovimentoCaixa(models.TextChoices):
+    """Tipos de movimentação manual de caixa."""
+    SUPRIMENTO = 'SUPRIMENTO', 'Suprimento (Entrada)'
+    SANGRIA = 'SANGRIA', 'Sangria (Saída)'
+    VENDA = 'VENDA', 'Venda (Recebimento)' # Opcional se vincular ContaReceber
+
+
+class MovimentoCaixa(TenantModel):
+    """
+    Movimentação financeira dentro de uma sessão de caixa.
+    Registra Suprimentos (Reforço), Sangrias (Retirada) e Vendas (Recebimentos em Dinheiro).
+    """
+    sessao = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.CASCADE,
+        related_name='movimentos',
+        verbose_name="Sessão"
+    )
+    
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoMovimentoCaixa.choices,
+        verbose_name="Tipo"
+    )
+    
+    valor = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Valor"
+    )
+    
+    data_hora = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Data/Hora"
+    )
+    
+    descricao = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Descrição/Motivo"
+    )
+    
+    # Vínculo opcional com venda (para rastreabilidade)
+    venda_origem = models.ForeignKey(
+        'sales.Venda',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='movimentos_caixa',
+        verbose_name="Venda de Origem"
+    )
+
+    class Meta:
+        verbose_name = "Movimento de Caixa"
+        verbose_name_plural = "Movimentos de Caixa"
+        ordering = ['-data_hora']
+
+    def __str__(self):
+        return f"{self.get_tipo_display()}: R$ {self.valor}"

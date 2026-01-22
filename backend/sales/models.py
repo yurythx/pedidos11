@@ -87,6 +87,35 @@ class Venda(TenantModel):
         help_text='Usuário responsável pela venda'
     )
     
+    colaborador = models.ForeignKey(
+        'partners.Colaborador',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vendas_comissionadas',
+        verbose_name='Colaborador/Garçom (Legacy)',
+        help_text='(Depreciado) Use o campo atendente'
+    )
+
+    atendente = models.ForeignKey(
+        'authentication.CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='vendas_atendidas',
+        verbose_name='Atendente/Garçom',
+        help_text='Usuário atendente que receberá comissão'
+    )
+    
+    comissao_valor = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Valor Comissão',
+        help_text='Valor calculado da comissão'
+    )
+    
     # Status e controle
     status = models.CharField(
         max_length=20,

@@ -1,239 +1,172 @@
-"""
-Service Layer para o módulo financeiro.
-Orquestra regras de negócio e integrações.
-"""
-from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.utils import timezone
 from decimal import Decimal
-from datetime import timedelta
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.db import transaction
 
-from .models import ContaReceber, ContaPagar, StatusConta
+from .models import (
+    Caixa, SessaoCaixa, MovimentoCaixa, TipoMovimentoCaixa, StatusSessao,
+    ContaReceber, StatusConta, TipoPagamento
+)
 
+class CaixaService:
+    @staticmethod
+    def get_sessao_aberta(usuario):
+        """Retorna sessão aberta para o usuário, se houver."""
+        return SessaoCaixa.objects.filter(
+            operador=usuario,
+            status=StatusSessao.ABERTA
+        ).first()
 
-class FinanceiroService:
-    """
-    Service responsável por operações financeiras.
-    
-    Responsabilidades:
-    - Gerar contas a receber a partir de vendas
-    - Baixar pagamentos
-    - Calcular juros e multas
-    - Gerar parcelas
-    """
-    
     @staticmethod
     @transaction.atomic
-    def gerar_conta_receber_venda(venda, parcelas=1, dias_vencimento=30):
-        """
-        Gera contas a receber a partir de uma venda finalizada.
+    def abrir_caixa(caixa_id, usuario, saldo_inicial=Decimal('0.00')):
+        """Abre uma nova sessão de caixa."""
+        # Verifica se usuário já tem caixa aberto
+        if CaixaService.get_sessao_aberta(usuario):
+            raise ValidationError("Você já possui um caixa aberto.")
         
-        Args:
-            venda: Instância de sales.Venda
-            parcelas: Número de parcelas (default: 1 - à vista)
-            dias_vencimento: Dias até vencimento (default: 30)
-        
-        Returns:
-            list: Lista de ContaReceber criadas
-        
-        Raises:
-            ValidationError: Se venda não estiver finalizada
-        """
-        from sales.models import StatusVenda
-        
-        # Valida status da venda
-        if venda.status != StatusVenda.FINALIZADA:
-            raise ValidationError(
-                f"Venda #{venda.numero} deve estar FINALIZADA para gerar contas a receber"
-            )
-        
-        # Verifica se já existem contas para esta venda
-        if venda.contas_receber.exists():
-            return list(venda.contas_receber.all())
-        
-        # Calcula valor de cada parcela
-        valor_parcela = venda.total_liquido / parcelas
-        valor_parcela = valor_parcela.quantize(Decimal('0.01'))
-        
-        # Ajusta última parcela para compensar arredondamento
-        valor_total_parcelas = valor_parcela * (parcelas - 1)
-        valor_ultima_parcela = venda.total_liquido - valor_total_parcelas
-        
-        # Cria contas
-        contas_criadas = []
-        data_base = venda.data_finalizacao.date()
-        
-        for i in range(parcelas):
-            # Calcula vencimento (parcelas mensais)
-            dias_adicionar = dias_vencimento + (i * 30)  # 30, 60, 90 dias...
-            data_vencimento = data_base + timedelta(days=dias_adicionar)
+        # Verifica se caixa físico já está aberto por outro
+        if SessaoCaixa.objects.filter(caixa_id=caixa_id, status=StatusSessao.ABERTA).exists():
+            raise ValidationError("Este caixa já está aberto por outro operador.")
             
-            # Valor desta parcela
-            valor = valor_ultima_parcela if i == parcelas - 1 else valor_parcela
+        # Valida se caixa pertence à empresa do usuário
+        caixa = Caixa.objects.get(id=caixa_id)
+        if caixa.empresa != usuario.empresa:
+            raise ValidationError("Caixa não pertence à sua empresa.")
+
+        sessao = SessaoCaixa.objects.create(
+            empresa=usuario.empresa,
+            caixa_id=caixa_id,
+            operador=usuario,
+            saldo_inicial=saldo_inicial,
+            status=StatusSessao.ABERTA
+        )
+        return sessao
+
+    @staticmethod
+    @transaction.atomic
+    def fechar_caixa(sessao_id, saldo_informado):
+        """Fecha a sessão de caixa."""
+        try:
+            sessao = SessaoCaixa.objects.get(id=sessao_id)
+        except SessaoCaixa.DoesNotExist:
+            raise ValidationError("Sessão não encontrada.")
             
-            # Descrição
-            if parcelas == 1:
-                descricao = f"Venda #{venda.numero} - À vista"
+        if sessao.status != StatusSessao.ABERTA:
+            raise ValidationError("Caixa já está fechado.")
+            
+        # Calcula totais
+        movimentos = sessao.movimentos.all()
+        total_suprimentos = sum(m.valor for m in movimentos if m.tipo == TipoMovimentoCaixa.SUPRIMENTO)
+        total_sangrias = sum(m.valor for m in movimentos if m.tipo == TipoMovimentoCaixa.SANGRIA)
+        total_vendas = sum(m.valor for m in movimentos if m.tipo == TipoMovimentoCaixa.VENDA)
+        
+        saldo_calculado = sessao.saldo_inicial + total_suprimentos + total_vendas - total_sangrias
+        
+        sessao.saldo_final_informado = saldo_informado
+        sessao.saldo_final_calculado = saldo_calculado
+        sessao.data_fechamento = timezone.now()
+        sessao.status = StatusSessao.FECHADA
+        sessao.save()
+        
+        return sessao
+
+    @staticmethod
+    def obter_resumo(sessao):
+        """Retorna resumo detalhado da sessão para fechamento."""
+        movimentos = sessao.movimentos.select_related('venda_origem').all()
+        
+        # Totais por tipo de movimento
+        total_suprimentos = sum(m.valor for m in movimentos if m.tipo == TipoMovimentoCaixa.SUPRIMENTO)
+        total_sangrias = sum(m.valor for m in movimentos if m.tipo == TipoMovimentoCaixa.SANGRIA)
+        
+        # Totais por forma de pagamento (Vendas)
+        vendas = [m.venda_origem for m in movimentos if m.tipo == TipoMovimentoCaixa.VENDA and m.venda_origem]
+        
+        resumo_vendas = {
+            'DINHEIRO': Decimal('0.00'),
+            'PIX': Decimal('0.00'),
+            'CARTAO_DEBITO': Decimal('0.00'),
+            'CARTAO_CREDITO': Decimal('0.00'),
+            'OUTROS': Decimal('0.00')
+        }
+        
+        total_vendas_geral = Decimal('0.00')
+        
+        for v in vendas:
+            valor = v.total_liquido
+            total_vendas_geral += valor
+            tipo = v.tipo_pagamento or 'OUTROS'
+            if tipo in resumo_vendas:
+                resumo_vendas[tipo] += valor
             else:
-                descricao = f"Venda #{venda.numero} - Parcela {i+1}/{parcelas}"
-            
-            # Cria conta
-            conta = ContaReceber.objects.create(
-                empresa=venda.empresa,
-                venda=venda,
-                cliente=venda.cliente,
-                descricao=descricao,
-                valor_original=valor,
-                data_emissao=data_base,
-                data_vencimento=data_vencimento,
-                status=StatusConta.PENDENTE
-            )
-            
-            contas_criadas.append(conta)
-        
-        return contas_criadas
-    
-    @staticmethod
-    @transaction.atomic
-    def baixar_conta_receber(conta_id, data_pagamento=None, tipo_pagamento=None,
-                            valor_juros=None, valor_multa=None, valor_desconto=None):
-        """
-        Baixa (marca como paga) uma conta a receber.
-        
-        Args:
-            conta_id: UUID da conta
-            data_pagamento: Data do pagamento (None = hoje)
-            tipo_pagamento: Forma de pagamento
-            valor_juros: Juros cobrados (None = calcular automaticamente)
-            valor_multa: Multa cobrada (None = calcular automaticamente)
-            valor_desconto: Desconto concedido
-        
-        Returns:
-            ContaReceber: Conta atualizada
-        """
-        try:
-            conta = ContaReceber.objects.select_for_update().get(id=conta_id)
-        except ContaReceber.DoesNotExist:
-            raise ValidationError(f"Conta a receber com ID {conta_id} não encontrada")
-        
-        # Valida status
-        if conta.status == StatusConta.PAGA:
-            raise ValidationError(f"Conta #{conta.id} já está paga")
-        
-        if conta.status == StatusConta.CANCELADA:
-            raise ValidationError(f"Conta #{conta.id} está cancelada")
-        
-        # Data de pagamento
-        if data_pagamento is None:
-            data_pagamento = timezone.now().date()
-        
-        # Calcula juros/multas automaticamente se não fornecidos
-        if conta.esta_vencida:
-            dias_atraso = conta.dias_atraso
-            
-            # Juros: 0.033% ao dia (1% ao mês)
-            if valor_juros is None:
-                valor_juros = conta.valor_original * Decimal('0.00033') * dias_atraso
-                valor_juros = valor_juros.quantize(Decimal('0.01'))
-            
-            # Multa: 2% sobre valor original
-            if valor_multa is None:
-                valor_multa = conta.valor_original * Decimal('0.02')
-                valor_multa = valor_multa.quantize(Decimal('0.01'))
-        else:
-            valor_juros = valor_juros or Decimal('0.00')
-            valor_multa = valor_multa or Decimal('0.00')
-        
-        # Desconto
-        valor_desconto = valor_desconto or Decimal('0.00')
-        
-        # Atualiza conta
-        conta.data_pagamento = data_pagamento
-        conta.tipo_pagamento = tipo_pagamento
-        conta.valor_juros = valor_juros
-        conta.valor_multa = valor_multa
-        conta.valor_desconto = valor_desconto
-        conta.status = StatusConta.PAGA
-        conta.save()
-        
-        return conta
-    
-    @staticmethod
-    @transaction.atomic
-    def baixar_conta_pagar(conta_id, data_pagamento=None, tipo_pagamento=None,
-                          valor_juros=None, valor_multa=None, valor_desconto=None):
-        """
-        Baixa (marca como paga) uma conta a pagar.
-        
-        Mesma lógica de baixar_conta_receber adaptada para despesas.
-        """
-        try:
-            conta = ContaPagar.objects.select_for_update().get(id=conta_id)
-        except ContaPagar.DoesNotExist:
-            raise ValidationError(f"Conta a pagar com ID {conta_id} não encontrada")
-        
-        if conta.status == StatusConta.PAGA:
-            raise ValidationError(f"Conta #{conta.id} já está paga")
-        
-        if conta.status == StatusConta.CANCELADA:
-            raise ValidationError(f"Conta #{conta.id} está cancelada")
-        
-        if data_pagamento is None:
-            data_pagamento = timezone.now().date()
-        
-        # Calcula juros/multas se vencida
-        if conta.esta_vencida:
-            dias_atraso = conta.dias_atraso
-            
-            if valor_juros is None:
-                valor_juros = conta.valor_original * Decimal('0.00033') * dias_atraso
-                valor_juros = valor_juros.quantize(Decimal('0.01'))
-            
-            if valor_multa is None:
-                valor_multa = conta.valor_original * Decimal('0.02')
-                valor_multa = valor_multa.quantize(Decimal('0.01'))
-        else:
-            valor_juros = valor_juros or Decimal('0.00')
-            valor_multa = valor_multa or Decimal('0.00')
-        
-        valor_desconto = valor_desconto or Decimal('0.00')
-        
-        # Atualiza conta
-        conta.data_pagamento = data_pagamento
-        conta.tipo_pagamento = tipo_pagamento
-        conta.valor_juros = valor_juros
-        conta.valor_multa = valor_multa
-        conta.valor_desconto = valor_desconto
-        conta.status = StatusConta.PAGA
-        conta.save()
-        
-        return conta
-    
-    @staticmethod
-    def atualizar_status_vencidas():
-        """
-        Atualiza status de contas pendentes que venceram.
-        
-        Deve ser executado periodicamente (ex: task agendada, cron).
-        
-        Returns:
-            dict: {'contas_receber': int, 'contas_pagar': int}
-        """
-        hoje = timezone.now().date()
-        
-        # Atualiza contas a receber
-        cr_atualizadas = ContaReceber.objects.filter(
-            status=StatusConta.PENDENTE,
-            data_vencimento__lt=hoje
-        ).update(status=StatusConta.VENCIDA)
-        
-        # Atualiza contas a pagar
-        cp_atualizadas = ContaPagar.objects.filter(
-            status=StatusConta.PENDENTE,
-            data_vencimento__lt=hoje
-        ).update(status=StatusConta.VENCIDA)
+                resumo_vendas['OUTROS'] += valor
+                
+        # Saldo em Dinheiro (Gaveta)
+        # = Inicial + Suprimentos + Vendas(Dinheiro) - Sangrias
+        saldo_dinheiro = sessao.saldo_inicial + total_suprimentos + resumo_vendas['DINHEIRO'] - total_sangrias
         
         return {
-            'contas_receber': cr_atualizadas,
-            'contas_pagar': cp_atualizadas
+            'saldo_inicial': sessao.saldo_inicial,
+            'total_suprimentos': total_suprimentos,
+            'total_sangrias': total_sangrias,
+            'total_vendas': total_vendas_geral,
+            'vendas_por_tipo': resumo_vendas,
+            'saldo_final_dinheiro': saldo_dinheiro, # Esperado na gaveta
+            'status': sessao.status
         }
+
+    @staticmethod
+    def registrar_movimento(sessao, tipo, valor, descricao, venda=None):
+        """Registra movimentação manual (suprimento/sangria) ou venda."""
+        if sessao.status != StatusSessao.ABERTA:
+            raise ValidationError("Caixa fechado.")
+            
+        MovimentoCaixa.objects.create(
+            empresa=sessao.empresa,
+            sessao=sessao,
+            tipo=tipo,
+            valor=valor,
+            descricao=descricao,
+            venda_origem=venda
+        )
+
+class FinanceiroService:
+    @staticmethod
+    def gerar_conta_receber_venda(venda, parcelas=1, dias_vencimento=0):
+        """Gera conta a receber para uma venda finalizada."""
+        # Se já existe, não gera
+        if ContaReceber.objects.filter(venda=venda).exists():
+            return
+            
+        # Mapeia tipo de pagamento
+        tipo_map = {
+            'DINHEIRO': TipoPagamento.DINHEIRO,
+            'PIX': TipoPagamento.PIX,
+            'CARTAO_DEBITO': TipoPagamento.CARTAO_DEBITO,
+            'CARTAO_CREDITO': TipoPagamento.CARTAO_CREDITO,
+        }
+        tipo = tipo_map.get(venda.tipo_pagamento, TipoPagamento.DINHEIRO)
+        
+        # Define status inicial (paga se for dinheiro/pix/debito)
+        status_conta = StatusConta.PAGA if tipo in [TipoPagamento.DINHEIRO, TipoPagamento.PIX, TipoPagamento.CARTAO_DEBITO] else StatusConta.PENDENTE
+        
+        # Se dias_vencimento > 0, usa. Senão hoje.
+        if dias_vencimento > 0:
+            data_vencimento = timezone.now().date() + timezone.timedelta(days=dias_vencimento)
+        else:
+            data_vencimento = timezone.now().date()
+            
+        data_pagamento = timezone.now().date() if status_conta == StatusConta.PAGA else None
+        
+        ContaReceber.objects.create(
+            empresa=venda.empresa,
+            venda=venda,
+            cliente=venda.cliente, # Pode ser None
+            descricao=f"Venda #{venda.numero}",
+            valor_original=venda.total_liquido,
+            data_vencimento=data_vencimento,
+            data_pagamento=data_pagamento,
+            status=status_conta,
+            tipo_pagamento=tipo
+        )

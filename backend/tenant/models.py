@@ -50,6 +50,19 @@ def validar_cnpj(value):
         raise ValidationError('CNPJ inválido (segundo dígito verificador)')
 
 
+class RegimeTributario(models.TextChoices):
+    """Regime Tributário da Empresa."""
+    SIMPLES_NACIONAL = '1', 'Simples Nacional'
+    SIMPLES_EXCESSO = '2', 'Simples Nacional - Excesso de Sublimite'
+    REGIME_NORMAL = '3', 'Regime Normal'
+
+
+class AmbienteNFe(models.TextChoices):
+    """Ambiente de Emissão da NFe."""
+    PRODUCAO = '1', 'Produção'
+    HOMOLOGACAO = '2', 'Homologação'
+
+
 class Empresa(models.Model):
     """
     Empresa/Tenant no sistema multi-tenant.
@@ -103,6 +116,65 @@ class Empresa(models.Model):
         validators=[cnpj_validator, validar_cnpj],
         verbose_name='CNPJ',
         help_text='Cadastro Nacional de Pessoa Jurídica'
+    )
+
+    inscricao_estadual = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name='Inscrição Estadual',
+        help_text='IE da empresa (obrigatório para NFe)'
+    )
+
+    inscricao_municipal = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name='Inscrição Municipal',
+        help_text='IM da empresa (opcional, para NFSe)'
+    )
+
+    regime_tributario = models.CharField(
+        max_length=1,
+        choices=RegimeTributario.choices,
+        default=RegimeTributario.SIMPLES_NACIONAL,
+        verbose_name='Regime Tributário',
+        help_text='Regime de tributação para cálculo de impostos'
+    )
+
+    # Configurações NFe
+    ambiente_nfe = models.CharField(
+        max_length=1,
+        choices=AmbienteNFe.choices,
+        default=AmbienteNFe.HOMOLOGACAO,
+        verbose_name='Ambiente NFe',
+        help_text='Ambiente de emissão (Homologação = Teste)'
+    )
+
+    serie_nfe = models.CharField(
+        max_length=3,
+        default='1',
+        verbose_name='Série NFe',
+        help_text='Série utilizada na emissão'
+    )
+
+    numero_nfe_atual = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Última NFe Emitida',
+        help_text='Número da última nota fiscal emitida'
+    )
+
+    certificado_digital = models.FileField(
+        upload_to='empresas/certificados/',
+        blank=True,
+        null=True,
+        verbose_name='Certificado Digital (A1)',
+        help_text='Arquivo .pfx ou .p12'
+    )
+
+    senha_certificado = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='Senha do Certificado',
+        help_text='Senha para descriptografar o certificado'
     )
     
     # Contato
@@ -226,3 +298,60 @@ class Empresa(models.Model):
             str: CNPJ sem formatação (14 dígitos)
         """
         return ''.join(filter(str.isdigit, self.cnpj))
+    
+    @property
+    def cnpj_limpo(self):
+        """Alias para cnpj_numerico."""
+        return self.cnpj_numerico
+
+    @property
+    def endereco_principal(self):
+        """Retorna o primeiro endereço encontrado (GenericRelation simulada)."""
+        from locations.models import Endereco
+        from django.contrib.contenttypes.models import ContentType
+        
+        ct = ContentType.objects.get_for_model(self)
+        return Endereco.objects.filter(content_type=ct, object_id=self.id).first()
+
+    @property
+    def logradouro(self):
+        return self.endereco_principal.logradouro if self.endereco_principal else None
+
+    @property
+    def numero(self):
+        return self.endereco_principal.numero if self.endereco_principal else None
+
+    @property
+    def bairro(self):
+        return self.endereco_principal.bairro if self.endereco_principal else None
+
+    @property
+    def cidade(self):
+        return self.endereco_principal.cidade if self.endereco_principal else None
+
+    @property
+    def uf(self):
+        return self.endereco_principal.uf if self.endereco_principal else None
+
+    @property
+    def cep(self):
+        return self.endereco_principal.cep if self.endereco_principal else None
+
+    @property
+    def endereco_municipio_ibge(self):
+        return self.endereco_principal.codigo_municipio_ibge if self.endereco_principal else None
+
+    @property
+    def endereco_uf_ibge_code(self):
+        """Retorna código IBGE da UF (2 dígitos)."""
+        if not self.uf:
+            return None
+        
+        # Mapa simplificado de códigos IBGE para UFs
+        codigos = {
+            'RO': '11', 'AC': '12', 'AM': '13', 'RR': '14', 'PA': '15', 'AP': '16', 'TO': '17',
+            'MA': '21', 'PI': '22', 'CE': '23', 'RN': '24', 'PB': '25', 'PE': '26', 'AL': '27',
+            'SE': '28', 'BA': '29', 'MG': '31', 'ES': '32', 'RJ': '33', 'SP': '35', 'PR': '41',
+            'SC': '42', 'RS': '43', 'MS': '50', 'MT': '51', 'GO': '52', 'DF': '53'
+        }
+        return codigos.get(self.uf)

@@ -2,23 +2,10 @@
 
 import React, { useEffect, useState } from 'react'
 import { request } from '../../src/lib/http/request'
+import type { Movimentacao } from '../../src/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TablePagination } from '../../src/components/ui/Table'
 import { Filter, Search } from 'lucide-react'
 import { formatBRL } from '../../src/utils/currency'
-
-type Movimentacao = {
-  id: string
-  produto_nome: string
-  deposito_nome: string
-  lote_codigo: string | null
-  tipo: 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA'
-  quantidade: number
-  valor_unitario: number
-  valor_total: number
-  documento: string | null
-  observacao: string | null
-  created_at: string
-}
 
 export default function MovimentacoesPage() {
   const [data, setData] = useState<Movimentacao[] | null>(null)

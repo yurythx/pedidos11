@@ -8,7 +8,9 @@ import {
   TrendingUp, 
   Users, 
   Calendar,
-  AlertCircle
+  AlertCircle,
+  ArrowUpCircle,
+  ArrowDownCircle
 } from 'lucide-react'
 import { formatBRL } from '../src/utils/currency'
 
@@ -39,10 +41,12 @@ export default function DashboardPage() {
     'qtd_pedidos': { label: 'Pedidos Realizados', icon: ShoppingBag, color: 'text-blue-600 bg-blue-50' },
     'ticket_medio': { label: 'Ticket Médio', icon: TrendingUp, color: 'text-purple-600 bg-purple-50' },
     'novos_clientes': { label: 'Novos Clientes', icon: Users, color: 'text-orange-600 bg-orange-50' },
+    'contas_receber_hoje': { label: 'A Receber (Hoje)', icon: ArrowUpCircle, color: 'text-teal-600 bg-teal-50' },
+    'contas_pagar_hoje': { label: 'A Pagar (Hoje)', icon: ArrowDownCircle, color: 'text-red-600 bg-red-50' },
   }
 
   const formatValue = (key: string, value: any) => {
-    if (key === 'total_vendas' || key === 'ticket_medio') return formatBRL(Number(value))
+    if (key === 'total_vendas' || key === 'ticket_medio' || key.includes('contas_')) return formatBRL(Number(value))
     return value
   }
 

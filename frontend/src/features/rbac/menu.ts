@@ -8,10 +8,13 @@ export type MenuItem = {
 
 export const baseMenu: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', href: '/', roles: ['ADMIN', 'GERENTE', 'ATENDENTE', 'COZINHA'], icon: 'LayoutDashboard' },
-  { id: 'pdv', label: 'PDV', href: '/pos', roles: ['ADMIN', 'GERENTE', 'ATENDENTE'], icon: 'Store' },
-  { id: 'kds', label: 'KDS', href: '/kds', roles: ['ADMIN', 'COZINHA'], icon: 'ChefHat' },
+  { id: 'pdv', label: 'Ponto de Venda', href: '/pos', roles: ['ADMIN', 'GERENTE', 'ATENDENTE'], icon: 'Store' },
+  { id: 'kds', label: 'KDS (Cozinha)', href: '/kds', roles: ['ADMIN', 'COZINHA'], icon: 'ChefHat' },
   { id: 'vendas', label: 'Vendas', href: '/vendas', roles: ['ADMIN', 'GERENTE', 'VENDEDOR', 'CAIXA'], icon: 'TrendingUp' },
-  { id: 'compras', label: 'Compras & NFe', href: '/compras', roles: ['ADMIN', 'GERENTE'], icon: 'ShoppingCart' },
+  { id: 'compras', label: 'Compras & NFe (Entrada)', href: '/compras', roles: ['ADMIN', 'GERENTE'], icon: 'ShoppingCart' },
+  { id: 'nfe-saida', label: 'NFe (Saída)', href: '/nfe', roles: ['ADMIN', 'GERENTE'], icon: 'FileText' },
+  { id: 'contas-receber', label: 'Contas a Receber', href: '/financeiro/contas-receber', roles: ['ADMIN', 'GERENTE'], icon: 'DollarSign' },
+  { id: 'contas-pagar', label: 'Contas a Pagar', href: '/financeiro/contas-pagar', roles: ['ADMIN', 'GERENTE'], icon: 'Wallet' },
   { id: 'produtos', label: 'Produtos', href: '/produtos', roles: ['ADMIN', 'GERENTE'], icon: 'Package' },
   { id: 'clientes', label: 'Clientes', href: '/clientes', roles: ['ADMIN', 'GERENTE', 'ATENDENTE'], icon: 'Users' },
   { id: 'fornecedores', label: 'Fornecedores', href: '/fornecedores', roles: ['ADMIN', 'GERENTE'], icon: 'Truck' },

@@ -51,6 +51,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_admin'] = user.is_admin
         token['is_gerente'] = user.is_gerente
         token['is_vendedor'] = user.is_vendedor
+        token['is_colaborador'] = user.is_colaborador
+        token['role_atendente'] = user.role_atendente
+        token['role_caixa'] = user.role_caixa
         
         return token
     
@@ -94,7 +97,8 @@ class UserSerializer(serializers.ModelSerializer):
             'empresa', 'empresa_nome', 'cargo', 'cargo_display',
             'is_admin', 'is_gerente', 'is_vendedor',
             'is_active', 'is_staff', 'is_superuser',
-            'password'
+            'password',
+            'is_colaborador', 'role_atendente', 'role_caixa', 'comissao_percentual'
         ]
         read_only_fields = ['id', 'empresa', 'is_active', 'is_staff', 'is_superuser']
 

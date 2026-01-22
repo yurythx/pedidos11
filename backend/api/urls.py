@@ -4,19 +4,21 @@ URLs da API REST.
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import (
+from api.views import (
     CategoriaViewSet, ProdutoViewSet, FichaTecnicaItemViewSet,
     DepositoViewSet, SaldoViewSet, MovimentacaoViewSet, LoteViewSet,
-    VendaViewSet, ItemVendaViewSet,
-    ClienteViewSet, FornecedorViewSet,
-    ContaReceberViewSet, ContaPagarViewSet
+    VendaViewSet, ItemVendaViewSet
 )
-from restaurant.views import SetorImpressaoViewSet, MesaViewSet, ComandaViewSet
-from .kds_dashboard_views import ProducaoViewSet, dashboard_resumo_dia
+# Views importadas diretamente dos apps
+from partners.views import ClienteViewSet, FornecedorViewSet, ColaboradorViewSet
+from financial.views import ContaReceberViewSet, ContaPagarViewSet, CaixaViewSet, SessaoCaixaViewSet
+from restaurant.views import SetorImpressaoViewSet, MesaViewSet, ComandaViewSet, KdsViewSet
+from api.kds_dashboard_views import ProducaoViewSet, dashboard_resumo_dia
 from authentication.models import CustomUser
 from authentication.serializers import UserSerializer
 from locations.models import Endereco
-from .serializers import EnderecoSerializer
+from api.serializers import EnderecoSerializer
+from tenant.views import EmpresaViewSet
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -43,15 +45,19 @@ router.register(r'itens-venda', ItemVendaViewSet, basename='item-venda')
 # Partners
 router.register(r'clientes', ClienteViewSet, basename='cliente')
 router.register(r'fornecedores', FornecedorViewSet, basename='fornecedor')
+router.register(r'colaboradores', ColaboradorViewSet, basename='colaborador')
 
 # Financial
 router.register(r'contas-receber', ContaReceberViewSet, basename='conta-receber')
 router.register(r'contas-pagar', ContaPagarViewSet, basename='conta-pagar')
+router.register(r'caixas', CaixaViewSet, basename='caixa')
+router.register(r'sessoes-caixa', SessaoCaixaViewSet, basename='sessao-caixa')
 
 # Restaurant (Food Service)
 router.register(r'setores-impressao', SetorImpressaoViewSet, basename='setor-impressao')
 router.register(r'mesas', MesaViewSet, basename='mesa')
 router.register(r'comandas', ComandaViewSet, basename='comanda')
+router.register(r'kds', KdsViewSet, basename='kds')
 
 # KDS (Kitchen Display System)
 router.register(r'producao', ProducaoViewSet, basename='producao')
@@ -93,6 +99,14 @@ class EnderecoViewSet(viewsets.ModelViewSet):
 
 router.register(r'usuarios', UserViewSet, basename='usuario')
 router.register(r'enderecos', EnderecoViewSet, basename='endereco')
+from api.public_views import PublicMenuViewSet
+
+# ... imports ...
+
+router.register(r'empresa', EmpresaViewSet, basename='empresa')
+
+# Public Menu (Digital)
+router.register(r'public/menu', PublicMenuViewSet, basename='public-menu')
 
 urlpatterns = [
     path('', include(router.urls)),

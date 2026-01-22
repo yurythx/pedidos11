@@ -262,7 +262,7 @@ SPECTACULAR_SETTINGS = {
 # CORS
 CORS_ALLOWED_ORIGINS = os.environ.get(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000'
+    'http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001'
 ).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
@@ -275,3 +275,8 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+# Configurações de Negócio
+# Desativa controle de Lotes (FIFO/FEFO) para facilitar testes.
+# Se True, exige que existam Lotes criados para cada entrada de produto.
+ESTOQUE_USAR_LOTES = False

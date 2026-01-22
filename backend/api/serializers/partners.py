@@ -2,7 +2,7 @@
 Serializers para módulo Partners (Clientes e Fornecedores).
 """
 from rest_framework import serializers
-from partners.models import Cliente, Fornecedor
+from partners.models import Cliente, Fornecedor, Colaborador
 
 
 class ClienteSerializer(serializers.ModelSerializer):
@@ -42,3 +42,18 @@ class FornecedorSerializer(serializers.ModelSerializer):
             'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'tipo_pessoa', 'slug', 'created_at', 'updated_at']
+
+
+class ColaboradorSerializer(serializers.ModelSerializer):
+    """Serializer para Colaborador (Garçom, Caixa, etc)."""
+    
+    cargo_display = serializers.CharField(source='get_cargo_display', read_only=True)
+    
+    class Meta:
+        model = Colaborador
+        fields = [
+            'id', 'usuario', 'nome', 'cpf', 'cargo', 'cargo_display',
+            'comissao_percentual', 'ativo', 'data_admissao',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

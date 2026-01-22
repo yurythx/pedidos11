@@ -10,10 +10,16 @@ drf-spectacular>=0.27.0  # API Documentation (Swagger/ReDoc)
 django-filter>=23.5  # Filtering for DRF
 djangorestframework-simplejwt>=5.3.0  # JWT Authentication
 
-# NFe XML parsing
+# NFe XML parsing & Signing
 lxml>=4.9.0
 fuzzywuzzy>=0.18.0
 python-Levenshtein>=0.20.0
+cryptography>=41.0.0
+signxml>=3.2.0
+
+# HTTP Transport (SEFAZ)
+requests>=2.31.0
+requests-pkcs12>=1.24.0
 
 # CORS
 django-cors-headers>=4.3.1

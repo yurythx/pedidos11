@@ -7,15 +7,147 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError as DjangoValidationError
 
-from .models import ProdutoFornecedor
+from .models import ProdutoFornecedor, NotaFiscal
 from .serializers import (
     ProdutoFornecedorSerializer,
     ConfirmarImportacaoNFeSerializer,
-    UploadXMLSerializer
+    UploadXMLSerializer,
+    NotaFiscalSerializer,
+    GerarNFeSerializer
 )
 from .services import NFeService
 from .parsers.nfe_parser import NFeParser, NFeParseError
 from .matching.product_matcher import ProductMatcher
+
+
+class EmissaoNFeViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestão de emissão de NFe/NFCe.
+    
+    Endpoints:
+    - POST /api/nfe/emissao/gerar_de_venda/ - Gera NFe a partir de uma venda
+    - POST /api/nfe/emissao/{id}/transmitir/ - Transmite a NFe (TODO)
+    """
+    serializer_class = NotaFiscalSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filtra notas da empresa."""
+        return NotaFiscal.objects.filter(
+            empresa=self.request.user.empresa
+        ).select_related('cliente', 'venda').prefetch_related('itens')
+    
+    @action(detail=False, methods=['post'], url_path='gerar-de-venda')
+    def gerar_de_venda(self, request):
+        """
+        Gera uma nova NFe a partir de uma venda.
+        """
+        serializer = GerarNFeSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            nota = NFeService.gerar_nfe_de_venda(
+                empresa=request.user.empresa,
+                venda_id=serializer.validated_data['venda_id'],
+                usuario=request.user,
+                modelo=serializer.validated_data['modelo'],
+                serie=serializer.validated_data['serie']
+            )
+            
+            return Response(
+                NotaFiscalSerializer(nota).data,
+                status=status.HTTP_201_CREATED
+            )
+            
+        except DjangoValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Erro interno: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+    @action(detail=True, methods=['post'], url_path='gerar-xml')
+    def gerar_xml_view(self, request, pk=None):
+        """
+        Gera e retorna o XML da NFe.
+        """
+        try:
+            xml_content = NFeService.gerar_xml(
+                nota_id=pk,
+                empresa=request.user.empresa
+            )
+            
+            return Response(
+                {'xml': xml_content},
+                status=status.HTTP_200_OK
+            )
+            
+        except DjangoValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Erro interno: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+    @action(detail=True, methods=['post'], url_path='transmitir')
+    def transmitir_view(self, request, pk=None):
+        """
+        Transmite a NFe para a SEFAZ.
+        """
+        try:
+            resultado = NFeService.transmitir_nfe(
+                nota_id=pk,
+                empresa=request.user.empresa
+            )
+            
+            return Response(
+                resultado,
+                status=status.HTTP_200_OK
+            )
+            
+        except DjangoValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Erro interno: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+    @action(detail=False, methods=['post'], url_path='consultar-recibo')
+    def consultar_recibo_view(self, request):
+        """
+        Consulta recibo na SEFAZ.
+        Body: {"recibo": "..."}
+        """
+        recibo = request.data.get('recibo')
+        if not recibo:
+            return Response({'error': 'Recibo obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            resultado = NFeService.consultar_recibo(
+                recibo=recibo,
+                empresa=request.user.empresa
+            )
+            return Response(resultado, status=status.HTTP_200_OK)
+            
+        except DjangoValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': f'Erro interno: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ProdutoFornecedorViewSet(viewsets.ModelViewSet):

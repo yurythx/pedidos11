@@ -71,6 +71,30 @@ class CustomUser(AbstractUser):
         verbose_name='Receber Notificações por Email',
         help_text='Enviar notificações do sistema por email'
     )
+
+    # Funções Operacionais (Colaborador)
+    is_colaborador = models.BooleanField(
+        default=False, 
+        verbose_name="É Colaborador?",
+        help_text="Indica se o usuário também é um colaborador (funcionário)"
+    )
+    role_atendente = models.BooleanField(
+        default=False, 
+        verbose_name="É Atendente/Garçom?",
+        help_text="Pode ser selecionado como atendente em vendas"
+    )
+    role_caixa = models.BooleanField(
+        default=False, 
+        verbose_name="É Operador de Caixa?",
+        help_text="Pode abrir e fechar caixas"
+    )
+    comissao_percentual = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=10.00, 
+        verbose_name="Comissão (%)",
+        help_text="Percentual de comissão sobre vendas"
+    )
     
     # Campos herdados de AbstractUser:
     # - username

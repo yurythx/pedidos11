@@ -10,6 +10,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from sales.models import ItemVenda, Venda, StatusVenda, StatusProducao
+from financial.models import ContaReceber, ContaPagar, StatusConta
 
 
 class ProducaoItemSerializer(serializers.Serializer):
@@ -152,6 +153,19 @@ def dashboard_resumo_dia(request):
         ticket_medio=Avg('total_liquido')
     )
     
+    # Financeiro (Hoje)
+    fin_receber = ContaReceber.objects.filter(
+        empresa=empresa,
+        data_vencimento=hoje,
+        status=StatusConta.PENDENTE
+    ).aggregate(total=Sum('valor_original'))['total'] or 0
+    
+    fin_pagar = ContaPagar.objects.filter(
+        empresa=empresa,
+        data_vencimento=hoje,
+        status=StatusConta.PENDENTE
+    ).aggregate(total=Sum('valor_original'))['total'] or 0
+
     # Top 5 produtos
     ranking_produtos = ItemVenda.objects.filter(
         empresa=empresa,
@@ -189,6 +203,8 @@ def dashboard_resumo_dia(request):
         'total_vendas': str(metricas['total_vendas'] or 0),
         'qtd_pedidos': metricas['qtd_pedidos'] or 0,
         'ticket_medio': str(round(metricas['ticket_medio'] or 0, 2)),
+        'contas_receber_hoje': str(fin_receber),
+        'contas_pagar_hoje': str(fin_pagar),
         'ranking_produtos': [
             {
                 'produto': item['produto__nome'],

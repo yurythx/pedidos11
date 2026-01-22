@@ -76,7 +76,8 @@ class Command(BaseCommand):
                 'categoria': cat_insumos,
                 'tipo': TipoProduto.INSUMO,
                 'preco_custo': Decimal('2.50'),
-                'preco_venda': Decimal('0.00')
+                'preco_venda': Decimal('0.00'),
+                'codigo_barras': 'INS-001' # Add default barcode to avoid null constraint if unique
             }
         )
         
@@ -88,7 +89,8 @@ class Command(BaseCommand):
                 'categoria': cat_insumos,
                 'tipo': TipoProduto.INSUMO,
                 'preco_custo': Decimal('8.00'),
-                'preco_venda': Decimal('0.00')
+                'preco_venda': Decimal('0.00'),
+                'codigo_barras': 'INS-002'
             }
         )
         
@@ -100,7 +102,8 @@ class Command(BaseCommand):
                 'categoria': cat_insumos,
                 'tipo': TipoProduto.INSUMO,
                 'preco_custo': Decimal('1.50'),
-                'preco_venda': Decimal('0.00')
+                'preco_venda': Decimal('0.00'),
+                'codigo_barras': 'INS-003'
             }
         )
         
@@ -112,7 +115,8 @@ class Command(BaseCommand):
                 'categoria': cat_insumos,
                 'tipo': TipoProduto.INSUMO,
                 'preco_custo': Decimal('0.30'),
-                'preco_venda': Decimal('0.00')
+                'preco_venda': Decimal('0.00'),
+                'codigo_barras': 'INS-004'
             }
         )
         
@@ -124,7 +128,8 @@ class Command(BaseCommand):
                 'categoria': cat_insumos,
                 'tipo': TipoProduto.INSUMO,
                 'preco_custo': Decimal('0.50'),
-                'preco_venda': Decimal('0.00')
+                'preco_venda': Decimal('0.00'),
+                'codigo_barras': 'INS-005'
             }
         )
         
@@ -136,7 +141,8 @@ class Command(BaseCommand):
                 'categoria': cat_insumos,
                 'tipo': TipoProduto.INSUMO,
                 'preco_custo': Decimal('2.00'),
-                'preco_venda': Decimal('0.00')
+                'preco_venda': Decimal('0.00'),
+                'codigo_barras': 'INS-006'
             }
         )
         
@@ -153,7 +159,8 @@ class Command(BaseCommand):
                 'tipo': TipoProduto.COMPOSTO,
                 'preco_custo': Decimal('0.00'),
                 'preco_venda': Decimal('25.00'),
-                'descricao': "Hambúrguer clássico com queijo"
+                'descricao': "Hambúrguer clássico com queijo",
+                'codigo_barras': 'COMP-001'
             }
         )
         
@@ -173,6 +180,20 @@ class Command(BaseCommand):
         # 6. Criar LOTES
         self.stdout.write("\n📦 Criando lotes...")
         hoje = date.today()
+
+        # Criar Mesas para Demonstração
+        from restaurant.models import Mesa
+        
+        self.stdout.write("\n🪑 Criando mesas...")
+        for i in range(1, 21):  # Cria mesas de 1 a 20
+            Mesa.objects.get_or_create(
+                empresa=empresa,
+                numero=i,
+                defaults={
+                    'capacidade': 4 if i <= 15 else 8  # 15 mesas de 4 lugares, 5 mesas de 8 lugares
+                }
+            )
+        self.stdout.write(f"   • 20 mesas criadas")
         
         # Lotes de Pão
         lote_pao_1, _ = StockService.dar_entrada_com_lote(

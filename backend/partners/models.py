@@ -2,9 +2,10 @@
 Models de parceiros (clientes e fornecedores) para Projeto Nix.
 """
 from django.db import models
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.fields import GenericRelation
+from decimal import Decimal
 
 from core.models import TenantModel
 
@@ -58,6 +59,13 @@ class TipoPessoa(models.TextChoices):
     """Tipos de pessoa fiscal."""
     FISICA = 'FISICA', 'Pessoa Física'
     JURIDICA = 'JURIDICA', 'Pessoa Jurídica'
+
+
+class IndicadorIE(models.TextChoices):
+    """Indicador da Inscrição Estadual do Destinatário."""
+    CONTRIBUINTE = '1', 'Contribuinte ICMS'
+    ISENTO = '2', 'Contribuinte Isento'
+    NAO_CONTRIBUINTE = '9', 'Não Contribuinte'
 
 
 class Cliente(TenantModel):
@@ -115,6 +123,14 @@ class Cliente(TenantModel):
         blank=True,
         verbose_name='RG/IE',
         help_text='RG (PF) ou Inscrição Estadual (PJ)'
+    )
+    
+    indicador_ie = models.CharField(
+        max_length=1,
+        choices=IndicadorIE.choices,
+        default=IndicadorIE.NAO_CONTRIBUINTE,
+        verbose_name='Indicador IE',
+        help_text='Indicador da IE do Destinatário'
     )
     
     # Contato
@@ -208,7 +224,7 @@ class Cliente(TenantModel):
                 raise ValidationError({
                     'cpf_cnpj': 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos'
                 })
-
+    
     def save(self, *args, **kwargs):
         """Garante que clean() seja chamado no save."""
         if not self.slug:
@@ -218,7 +234,14 @@ class Cliente(TenantModel):
     @property
     def documento_numerico(self):
         """Retorna CPF/CNPJ apenas com números."""
+        if not self.cpf_cnpj:
+            return ''
         return ''.join(filter(str.isdigit, self.cpf_cnpj))
+
+    @property
+    def cpf_cnpj_limpo(self):
+        """Alias para documento_numerico."""
+        return self.documento_numerico
     
     @property
     def is_pessoa_fisica(self):
@@ -411,3 +434,51 @@ class Fornecedor(TenantModel):
     def nome_exibicao(self):
         """Retorna nome fantasia ou razão social."""
         return self.nome_fantasia or self.razao_social
+
+
+class TipoCargo(models.TextChoices):
+    GERENTE = 'GERENTE', 'Gerente'
+    CAIXA = 'CAIXA', 'Operador de Caixa'
+    GARCOM = 'GARCOM', 'Garçom'
+    COZINHEIRO = 'COZINHEIRO', 'Cozinheiro'
+    ENTREGADOR = 'ENTREGADOR', 'Entregador'
+    OUTRO = 'OUTRO', 'Outro'
+
+
+class Colaborador(TenantModel):
+    """
+    Funcionário/Colaborador da empresa.
+    Usado para vendas (garçom), caixa, entregas, etc.
+    """
+    usuario = models.OneToOneField(
+        'authentication.CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='colaborador_perfil',
+        verbose_name="Usuário de Sistema",
+        help_text="Usuário para login (opcional)"
+    )
+    
+    nome = models.CharField(max_length=100, verbose_name="Nome Completo")
+    cpf = models.CharField(max_length=14, blank=True, verbose_name="CPF")
+    cargo = models.CharField(max_length=20, choices=TipoCargo.choices, default=TipoCargo.OUTRO)
+    
+    comissao_percentual = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="% Comissão",
+        help_text="Percentual de comissão sobre vendas"
+    )
+    
+    ativo = models.BooleanField(default=True)
+    data_admissao = models.DateField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Colaborador"
+        verbose_name_plural = "Colaboradores"
+    
+    def __str__(self):
+        return f"{self.nome} ({self.get_cargo_display()})"

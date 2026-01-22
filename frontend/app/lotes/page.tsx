@@ -2,19 +2,9 @@
 
 import React, { useEffect, useState } from 'react'
 import { request } from '../../src/lib/http/request'
+import type { Lote } from '../../src/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../src/components/ui/Table'
 import { Filter, Calendar } from 'lucide-react'
-
-type Lote = {
-  id: string
-  codigo_lote: string
-  produto_nome: string
-  deposito_nome: string
-  data_validade: string | null
-  quantidade_atual: number
-  dias_ate_vencer: number | null
-  status_validade: string | null
-}
 
 export default function LotesPage() {
   const [data, setData] = useState<Lote[] | null>(null)
