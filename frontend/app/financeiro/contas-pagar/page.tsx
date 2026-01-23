@@ -25,7 +25,13 @@ export default function ContasPagarPage() {
   const router = useRouter()
   const [contas, setContas] = useState<ContaPagar[]>([])
   const [loading, setLoading] = useState(true)
-  const [pagination, setPagination] = useState<Paginacao>({
+  const [pagination, setPagination] = useState<{
+    count: number
+    next: string | null
+    previous: string | null
+    current_page: number
+    total_pages: number
+  }>({
     count: 0,
     next: null,
     previous: null,

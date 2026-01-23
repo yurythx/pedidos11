@@ -27,7 +27,13 @@ export default function ContasReceberPage() {
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedConta, setSelectedConta] = useState<ContaReceber | null>(null)
-  const [pagination, setPagination] = useState<Paginacao>({
+  const [pagination, setPagination] = useState<{
+    count: number
+    next: string | null
+    previous: string | null
+    current_page: number
+    total_pages: number
+  }>({
     count: 0,
     next: null,
     previous: null,
