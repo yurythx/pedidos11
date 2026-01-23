@@ -51,6 +51,6 @@ else:
     print("ℹ️  Usuário 'admin' já existe")
 
 print("\n✅ Setup completo!")
-print("🌐 Acesse: http://127.0.0.1:8000/admin/")
+print("🌐 Acesse: http://127.0.0.1:8002/admin/")
 print("👤 Login: suporte / suporte123")
 print("👤 Login: admin / admin123")

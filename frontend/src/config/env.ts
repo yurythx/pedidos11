@@ -4,7 +4,7 @@ export type EnvConfig = {
 }
 
 export const getEnv = (): EnvConfig => ({
-  apiUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8002/api',
   authRefreshPath: process.env.NEXT_PUBLIC_AUTH_REFRESH_PATH ?? '/auth/token/refresh/',
 })
 

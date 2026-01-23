@@ -257,7 +257,7 @@ def criar_dados_demo():
    Senha: admin123
 
 🌐 Acesse:
-   http://localhost:8000/admin/
+   http://localhost:8002/admin/
 
 ✅ O que testar:
    1. Catalog → Produtos → X-Burger
