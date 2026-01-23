@@ -24,14 +24,26 @@ class Command(BaseCommand):
             defaults={
                 'cnpj': '00000000000191',
                 'razao_social': 'Nix Restaurante LTDA',
-                'endereco': 'Rua Principal, 100',
                 'telefone': '11999999999'
             }
         )
         if created:
-            self.stdout.write(self.style.SUCCESS(f'Empresa criada: {empresa.nome}'))
+            self.stdout.write(self.style.SUCCESS(f'Empresa criada: {empresa.nome_fantasia}'))
+            
+            # Criar endereço
+            Endereco.objects.create(
+                content_type=ContentType.objects.get_for_model(Empresa),
+                object_id=empresa.id,
+                logradouro='Rua Principal',
+                numero='100',
+                bairro='Centro',
+                cidade='São Paulo',
+                uf='SP',
+                cep='01001-000',
+                tipo='PRINCIPAL'
+            )
         else:
-            self.stdout.write(f'Empresa já existe: {empresa.nome}')
+            self.stdout.write(f'Empresa já existe: {empresa.nome_fantasia}')
 
         # 2. Criar Usuário Suporte
         try:
