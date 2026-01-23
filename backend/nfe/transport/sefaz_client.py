@@ -82,6 +82,7 @@ class SefazClient:
         url = self._get_url('NfeAutorizacao')
         
         # Montar Envelope SOAP
+        xml_content = xml_assinado.replace("<?xml version='1.0' encoding='UTF-8'?>", "")
         envelope = self._build_soap_envelope(
             method='nfeAutorizacaoLote',
             content=f"""
@@ -89,7 +90,7 @@ class SefazClient:
                 <enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
                     <idLote>{id_lote}</idLote>
                     <indSinc>1</indSinc>
-                    {xml_assinado.replace('<?xml version=\'1.0\' encoding=\'UTF-8\'?>', '')}
+                    {xml_content}
                 </enviNFe>
             </nfeDadosMsg>
             """
