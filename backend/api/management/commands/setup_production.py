@@ -112,7 +112,7 @@ class Command(BaseCommand):
                 'categoria': cat_lanches,
                 'preco_venda': Decimal('25.00'),
                 'preco_custo': Decimal('10.00'),
-                'tipo': TipoProduto.PRODUTO_FINAL,
+                'tipo': TipoProduto.FINAL,
                 'imprimir_producao': True
             }
         )
