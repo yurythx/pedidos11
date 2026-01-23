@@ -51,6 +51,8 @@ else:
     print("ℹ️  Usuário 'admin' já existe")
 
 print("\n✅ Setup completo!")
-print("🌐 Acesse: http://127.0.0.1:8002/admin/")
+print("🌐 Acesse Admin em:")
+print("   http://api.projetohavoc.shop:8002/admin/")
+print("   http://192.168.1.121:8002/admin/")
 print("👤 Login: suporte / suporte123")
 print("👤 Login: admin / admin123")
