@@ -34,6 +34,7 @@ class Command(BaseCommand):
             
             # Criar endereço
             Endereco.objects.create(
+                empresa=empresa,  # Campo obrigatório (TenantModel)
                 content_type=ContentType.objects.get_for_model(Empresa),
                 object_id=empresa.id,
                 logradouro='Rua Principal',
@@ -115,6 +116,7 @@ class Command(BaseCommand):
                 'imprimir_producao': True
             }
         )
+        self.stdout.write(self.style.SUCCESS('Categorias e produtos básicos criados'))
 
         # 6. Criar Mesas (1 a 10)
         for i in range(1, 11):
