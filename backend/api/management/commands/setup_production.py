@@ -99,7 +99,7 @@ class Command(BaseCommand):
                 'categoria': cat_bebidas,
                 'preco_venda': Decimal('6.00'),
                 'preco_custo': Decimal('3.00'),
-                'tipo': TipoProduto.PRODUTO_FINAL,
+                'tipo': TipoProduto.FINAL,
                 'ncm': '22021000',
                 'imprimir_producao': True
             }
