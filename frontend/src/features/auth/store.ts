@@ -13,7 +13,7 @@ interface AuthState {
   tenantId: string | null
   login: (user: Usuario, tokens: Tokens) => void
   logout: () => void
-  setTenantId: (tenantId: number | null) => void
+  setTenantId: (tenantId: string | null) => void
   setTokens: (tokens: Tokens) => void
   setUser: (user: Usuario | null) => void
 }
