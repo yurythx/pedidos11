@@ -1,7 +1,7 @@
 const axios = require('axios')
 ;(async () => {
   try {
-    const API = process.env.API || 'http://api.projetohavoc.shop:8002/api'
+    const API = process.env.API || 'http://192.168.1.121:8002/api'
     const r = await axios.post(`${API}/auth/token/`, {
       username: 'admin',
       password: 'admin123',

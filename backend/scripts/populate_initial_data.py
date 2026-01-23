@@ -165,9 +165,9 @@ def criar_dados_iniciais():
     print("   Garçom: garcom1 / senha123")
     print("   Gerente: gerente1 / senha123")
     print("\n🌐 Acesse:")
-    print("   Django Admin (Domínio): http://api.projetohavoc.shop:8002/admin/")
     print("   Django Admin (IP):      http://192.168.1.121:8002/admin/")
-    print("   API Swagger (Domínio):  http://api.projetohavoc.shop:8002/api/docs/")
+    print("   Django Admin (Domínio): http://api.projetohavoc.shop:8002/admin/")
+    print("   API Swagger (IP):       http://192.168.1.121:8002/api/docs/")
     print("\n")
 
 if __name__ == '__main__':

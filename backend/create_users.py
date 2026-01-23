@@ -52,7 +52,7 @@ else:
 
 print("\n✅ Setup completo!")
 print("🌐 Acesse Admin em:")
-print("   http://api.projetohavoc.shop:8002/admin/")
 print("   http://192.168.1.121:8002/admin/")
+print("   http://api.projetohavoc.shop:8002/admin/")
 print("👤 Login: suporte / suporte123")
 print("👤 Login: admin / admin123")

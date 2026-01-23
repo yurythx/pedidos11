@@ -1,4 +1,4 @@
-export const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://api.projetohavoc.shop:8002/api'
+export const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://192.168.1.121:8002/api'
 
 let access: string | null = null
 

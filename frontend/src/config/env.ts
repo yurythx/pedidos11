@@ -8,7 +8,7 @@ export const getEnv = (): EnvConfig => {
   // No servidor (SSR), usa a rede interna do Docker se disponível
   const apiUrl = (isServer && process.env.API_URL_INTERNAL) 
     ? process.env.API_URL_INTERNAL 
-    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://api.projetohavoc.shop:8002/api')
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://192.168.1.121:8002/api')
 
   return {
     apiUrl,

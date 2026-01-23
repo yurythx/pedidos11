@@ -257,8 +257,8 @@ def criar_dados_demo():
    Senha: admin123
 
 🌐 Acesse:
-    Domínio: http://api.projetohavoc.shop:8002/admin/
     IP Local: http://192.168.1.121:8002/admin/
+    Domínio (se DNS ok): http://api.projetohavoc.shop:8002/admin/
 
 ✅ O que testar:
    1. Catalog → Produtos → X-Burger
