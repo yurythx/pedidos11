@@ -63,7 +63,7 @@ export default function ContasReceberPage() {
         url += `&search=${searchTerm}`
       }
 
-      const response = await request(url)
+      const response = await request.get<Paginacao<ContaReceber>>(url)
       setContas(response.results)
       setPagination({
         count: response.count,

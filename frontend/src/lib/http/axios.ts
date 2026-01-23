@@ -30,7 +30,7 @@ const getStorageItem = (key: string) => {
   }
 }
 
-api.interceptors.request.use((config: AxiosRequestConfig) => {
+api.interceptors.request.use((config: any) => {
   let { tokens, tenantId } = useAuthStore.getState()
   
   // FIX: Se o token for null, tenta ler do localStorage manualmente.

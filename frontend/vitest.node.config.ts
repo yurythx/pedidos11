@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    singleThread: true,
+    // singleThread: true,
   },
 })

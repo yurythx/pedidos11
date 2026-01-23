@@ -18,7 +18,7 @@ export default function ComandasPage() {
         clear()
     }
     setComandaId(comanda.id)
-    router.push('/pos/comandas/' + comanda.id)
+    router.push(('/pos/comandas/' + comanda.id) as any)
   }
 
   const handleNovaComanda = () => setShowInputModal(true)

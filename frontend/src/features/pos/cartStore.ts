@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { VendaSnapshotItem, Produto } from '../../types'
 import { useAuthStore } from '../auth/store'
 
-type CartItem = {
+export type CartItem = {
   produto_id: string
   quantidade: number
   observacoes?: string

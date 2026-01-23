@@ -210,7 +210,7 @@ export function NFeList() {
         pageSize={pageSize}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
-        hasMore={response?.next != null}
+        hasMore={(response as any)?.next != null}
       />
     </div>
   )

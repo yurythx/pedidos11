@@ -455,11 +455,11 @@ export function CartPanelMesa() {
                         <button 
                             className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-primary active:scale-95 transition-all disabled:opacity-50" 
                             onClick={() => decrement(i.produto_id)}
-                            disabled={i.quantity <= 1}
+                            disabled={i.quantidade <= 1}
                         >
                             <Minus size={14} />
                         </button>
-                        <span className="w-8 text-center font-bold text-gray-800">{i.quantity}</span>
+                        <span className="w-8 text-center font-bold text-gray-800">{i.quantidade}</span>
                         <button 
                             className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-gray-600 hover:text-primary active:scale-95 transition-all" 
                             onClick={() => increment(i.produto_id)}
@@ -468,7 +468,7 @@ export function CartPanelMesa() {
                         </button>
                         </div>
                         <div className="font-bold text-gray-800">
-                        {formatBRL(((i.produto?.preco_venda ?? 0) * i.quantity) || 0)}
+                        {formatBRL(((i.produto?.preco_venda ?? 0) * i.quantidade) || 0)}
                         </div>
                     </div>
                     

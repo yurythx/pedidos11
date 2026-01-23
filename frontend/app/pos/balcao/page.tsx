@@ -17,8 +17,6 @@ export default function BalcaoPage() {
   // Atalhos de teclado globais
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === '+') increment(Number.NaN)
-      if (e.key === '-') decrement(Number.NaN)
       if (e.key === 'Escape') clear()
     }
     window.addEventListener('keydown', onKey)

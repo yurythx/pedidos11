@@ -47,7 +47,7 @@ export function PaymentModal({ isOpen, onClose, total, onConfirm }: PaymentModal
             
         // Carregar Colaboradores
         colaboradorService.getColaboradores()
-            .then(res => setColaboradores(res?.results || res || []))
+            .then(res => setColaboradores((res as any)?.results || res || []))
             .catch(console.error)
     }
   }, [isOpen, total])

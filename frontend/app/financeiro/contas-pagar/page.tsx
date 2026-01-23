@@ -65,7 +65,7 @@ export default function ContasPagarPage() {
         url += `&search=${searchTerm}`
       }
 
-      const response = await request(url)
+      const response = await request.get<Paginacao<ContaPagar>>(url)
       setContas(response.results)
       setPagination({
         count: response.count,

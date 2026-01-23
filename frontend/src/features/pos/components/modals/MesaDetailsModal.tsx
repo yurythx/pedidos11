@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, Printer, DollarSign, Receipt, CreditCard } from 'lucide-react'
+import { X, Printer, DollarSign, Receipt, CreditCard, Utensils } from 'lucide-react'
 import { formatBRL } from '../../../../utils/currency'
 import { request } from '../../../../lib/http/request'
 import { Mesa } from '../../../../types'

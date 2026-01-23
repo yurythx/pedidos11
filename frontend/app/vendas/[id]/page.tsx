@@ -214,7 +214,7 @@ export default function VendaDetalhesPage() {
                             <TableHead className="w-24 text-center">Qtd</TableHead>
                             <TableHead className="w-32 text-right">Unitário</TableHead>
                             <TableHead className="w-32 text-right">Total</TableHead>
-                            {isAberta && <TableHead className="w-12"></TableHead>}
+                            {isAberta && <TableHead className="w-12"><span className="sr-only">Ações</span></TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
