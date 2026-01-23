@@ -24,7 +24,7 @@ interface TableHeadProps {
   className?: string
 }
 
-interface TableCellProps {
+interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
   children: React.ReactNode
   className?: string
 }
@@ -80,9 +80,9 @@ export function TableHead({ children, className = '' }: TableHeadProps) {
   )
 }
 
-export function TableCell({ children, className = '' }: TableCellProps) {
+export function TableCell({ children, className = '', ...props }: TableCellProps) {
   return (
-    <td className={`px-6 py-4 text-sm text-gray-700 ${className}`}>
+    <td className={`px-6 py-4 text-sm text-gray-700 ${className}`} {...props}>
       {children}
     </td>
   )
