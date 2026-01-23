@@ -74,7 +74,7 @@ class Command(BaseCommand):
         deposito, created = Deposito.objects.get_or_create(
             empresa=empresa,
             nome='Estoque Principal',
-            defaults={'padrao': True}
+            defaults={'is_padrao': True}
         )
         if created:
              self.stdout.write(self.style.SUCCESS('Depósito Principal criado'))
