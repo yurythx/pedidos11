@@ -271,9 +271,10 @@ else:
 
 CORS_ALLOW_CREDENTIALS = True
 
+# CSRF Trusted Origins (incluindo domínios do Cloudflare)
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:3000,http://127.0.0.1:3000'
+    'http://localhost:3000,http://127.0.0.1:3000,https://projetohavoc.shop,https://api.projetohavoc.shop'
 ).split(',')
 
 # Security Settings (Production)
