@@ -7,6 +7,8 @@ from stock.models import Deposito
 from catalog.models import Categoria, Produto, TipoProduto
 from restaurant.models import Mesa
 from financial.models import Caixa
+from locations.models import Endereco
+from django.contrib.contenttypes.models import ContentType
 from decimal import Decimal
 
 User = get_user_model()
