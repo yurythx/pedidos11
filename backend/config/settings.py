@@ -79,25 +79,26 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
-# Usando SQLite para desenvolvimento (trocar para PostgreSQL em produção)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Configuração dinâmica para suportar PostgreSQL via variáveis de ambiente
+if os.environ.get('DATABASE') == 'postgres':
+    DATABASES = {
+        'default': {
+            'ENGINE': os.environ.get('SQL_ENGINE', 'django.db.backends.postgresql'),
+            'NAME': os.environ.get('SQL_DATABASE', 'pedidos11'),
+            'USER': os.environ.get('SQL_USER', 'postgres'),
+            'PASSWORD': os.environ.get('SQL_PASSWORD', 'postgres'),
+            'HOST': os.environ.get('SQL_HOST', 'db'),
+            'PORT': os.environ.get('SQL_PORT', '5432'),
+        }
     }
-}
-
-# Configuração PostgreSQL (comentado)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.environ.get('DB_NAME', 'projetonix'),
-#         'USER': os.environ.get('DB_USER', 'postgres'),
-#         'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
-#         'HOST': os.environ.get('DB_HOST', 'localhost'),
-#         'PORT': os.environ.get('DB_PORT', '5432'),
-#     }
-# }
+else:
+    # Usando SQLite para desenvolvimento local sem Docker
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.CustomUser'

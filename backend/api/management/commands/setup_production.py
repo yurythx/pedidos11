@@ -101,7 +101,8 @@ class Command(BaseCommand):
                 'preco_custo': Decimal('3.00'),
                 'tipo': TipoProduto.FINAL,
                 'ncm': '22021000',
-                'imprimir_producao': True
+                'imprimir_producao': True,
+                'codigo_barras': '7894900011517'
             }
         )
         
@@ -113,7 +114,8 @@ class Command(BaseCommand):
                 'preco_venda': Decimal('25.00'),
                 'preco_custo': Decimal('10.00'),
                 'tipo': TipoProduto.FINAL,
-                'imprimir_producao': True
+                'imprimir_producao': True,
+                'codigo_barras': 'INT-XBURGER'
             }
         )
         self.stdout.write(self.style.SUCCESS('Categorias e produtos básicos criados'))
