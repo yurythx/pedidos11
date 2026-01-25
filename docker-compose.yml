@@ -1,55 +1,80 @@
+version: '3.8'
+
 services:
+  # PostgreSQL Database
   db:
     image: postgres:15-alpine
+    container_name: nix-postgres
+    environment:
+      POSTGRES_DB: nix_db
+      POSTGRES_USER: nix_user
+      POSTGRES_PASSWORD: nix_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=pedidos11
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    restart: always
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nix_user -d nix_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Backend Django
   backend:
-    build: ./backend
-    command: /entrypoint.sh
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nix-backend
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
-      - "8002:8000"
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
     environment:
-      - DATABASE=postgres
-      - SQL_ENGINE=django.db.backends.postgresql
-      - SQL_DATABASE=pedidos11
-      - SQL_USER=postgres
-      - SQL_PASSWORD=postgres
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - ALLOWED_HOSTS=*
-      - DEBUG=0
-      - CORS_ALLOW_ALL=True
-      - CORS_ALLOWED_ORIGINS=http://localhost:3002,http://127.0.0.1:3002,http://192.168.1.121:3002
-      - CSRF_TRUSTED_ORIGINS=http://localhost:3002,http://127.0.0.1:3002,http://192.168.1.121:3002
+      - DEBUG=True
+      - DATABASE_URL=postgresql://nix_user:nix_password@db:5432/nix_db
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000
     depends_on:
-      - db
-    restart: always
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # Frontend Next.js
   frontend:
     build:
       context: ./frontend
-      args:
-        - NEXT_PUBLIC_API_URL=/api
+      dockerfile: Dockerfile
+    container_name: nix-frontend
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     ports:
-      - "3002:3000"
+      - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - API_URL_INTERNAL=http://backend:8000/api
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
-    restart: always
+    stdin_open: true
+    tty: true
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+
+networks:
+  default:
+    name: nix-network

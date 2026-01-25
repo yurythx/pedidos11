@@ -1,26 +1,39 @@
-# backend/Dockerfile
 FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Variáveis de ambiente
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# Diretório de trabalho
 WORKDIR /app
 
-# Install system dependencies (gcc for compiling some python packages, libpq for postgres)
+# Instalar dependências do sistema
 RUN apt-get update && apt-get install -y \
     gcc \
-    libpq-dev \
-    netcat-traditional \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
+# Copiar requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install gunicorn
 
+# Instalar dependências Python
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copiar código
 COPY . .
 
-# Copy entrypoint and make executable
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Coletar arquivos estáticos
+RUN python manage.py collectstatic --noinput || true
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Expor porta
+EXPOSE 8000
+
+# Script de entrada
+COPY docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

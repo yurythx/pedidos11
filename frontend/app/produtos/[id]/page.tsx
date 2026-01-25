@@ -1,276 +1,314 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { request } from '../../../src/lib/http/request'
-import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react'
-import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { useProduct, useUpdateProduct } from '@/features/catalog/hooks/useProducts'
+import { useCategories } from '@/features/catalog/hooks/useCategories'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { TipoProduto, UnidadeMedida } from '@/features/catalog/types'
+import { Loader2 } from 'lucide-react'
 
-type ProdutoForm = {
-  nome: string
-  sku: string
-  codigo_barras: string
-  categoria: string
-  tipo: string
-  preco_venda: string
-  preco_custo: string
-  unidade: string
-  is_active: boolean
-  destaque: boolean
-}
+const produtoSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
+  descricao: z.string().optional(),
+  tipo: z.nativeEnum(TipoProduto),
+  categoria_id: z.string().min(1, 'Selecione uma categoria'),
+  preco_custo: z.number().min(0).optional(),
+  preco_venda: z.number().min(0.01, 'Preço de venda deve ser maior que zero'),
+  unidade_medida: z.nativeEnum(UnidadeMedida),
+  codigo_barras: z.string().optional(),
+  sku: z.string().optional(),
+  ativo: z.boolean().default(true),
+  estoque_minimo: z.number().min(0).optional(),
+  estoque_maximo: z.number().min(0).optional(),
+})
 
-export default function ProdutoFormPage() {
+type ProdutoFormData = z.infer<typeof produtoSchema>
+
+export default function EditarProdutoPage() {
+  const params = useParams()
   const router = useRouter()
-  const params = useParams<{ id: string }>()
-  const isNew = params.id === 'novo'
-  const id = params.id
+  const id = params.id as string
 
-  const [form, setForm] = useState<ProdutoForm>({
-    nome: '',
-    sku: '',
-    codigo_barras: '',
-    categoria: '',
-    tipo: 'COMUM',
-    preco_venda: '0',
-    preco_custo: '0',
-    unidade: 'UN',
-    is_active: true,
-    destaque: false,
+  const { data: produto, isLoading: loadingProduto } = useProduct(id)
+  const { data: categorias } = useCategories()
+  const updateMutation = useUpdateProduct()
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<ProdutoFormData>({
+    resolver: zodResolver(produtoSchema),
+    values: produto ? {
+      nome: produto.nome,
+      descricao: produto.descricao || '',
+      tipo: produto.tipo,
+      categoria_id: produto.categoria.id,
+      preco_custo: produto.preco_custo,
+      preco_venda: produto.preco_venda,
+      unidade_medida: produto.unidade_medida,
+      codigo_barras: produto.codigo_barras || '',
+      sku: produto.sku || '',
+      ativo: produto.ativo,
+      estoque_minimo: produto.estoque_minimo,
+      estoque_maximo: produto.estoque_maximo,
+    } : undefined,
   })
 
-  const [categorias, setCategorias] = useState<{ id: string; nome: string }[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const loadCategorias = async () => {
-      try {
-        const res = await request.get<any>('/categorias/?page_size=100')
-        setCategorias(res?.results ?? res ?? [])
-      } catch {
-        // ignora erro de categorias
-      }
-    }
-    loadCategorias()
-
-    if (!isNew) {
-      const loadProduto = async () => {
-        setLoading(true)
-        try {
-          const res = await request.get<any>(`/produtos/${id}/`)
-          setForm({
-            nome: res.nome,
-            sku: res.sku ?? '',
-            codigo_barras: res.codigo_barras ?? '',
-            categoria: res.categoria ?? '',
-            tipo: res.tipo,
-            preco_venda: res.preco_venda,
-            preco_custo: res.preco_custo ?? '0',
-            unidade: res.unidade ?? 'UN',
-            is_active: res.is_active,
-            destaque: res.destaque,
-          })
-        } catch (err: any) {
-          setError(err?.message ?? 'Erro ao carregar produto')
-        } finally {
-          setLoading(false)
-        }
-      }
-      loadProduto()
-    }
-  }, [id, isNew])
-
-  const onChange = (field: keyof ProdutoForm, value: any) => {
-    setForm((f) => ({ ...f, [field]: value }))
-  }
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+  const onSubmit = async (data: ProdutoFormData) => {
     try {
-      const payload = {
-        ...form,
-        categoria: form.categoria || null,
-        sku: form.sku || null,
-        codigo_barras: form.codigo_barras || null,
-        preco_venda: Number(form.preco_venda),
-        preco_custo: Number(form.preco_custo),
-      }
-
-      if (isNew) {
-        await request.post('/produtos/', payload)
-      } else {
-        await request.patch(`/produtos/${id}/`, payload)
-      }
+      await updateMutation.mutateAsync({ id, data })
       router.push('/produtos')
-    } catch (err: any) {
-      setError(err?.message ?? 'Erro ao salvar produto')
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      alert('Erro ao atualizar produto')
     }
   }
 
-  if (loading && !isNew && !form.nome) {
-    return <div className="text-center py-8">Carregando...</div>
+  const tipo = watch('tipo')
+  const precoCusto = watch('preco_custo')
+  const precoVenda = watch('preco_venda')
+
+  const margem = precoCusto && precoVenda
+    ? ((precoVenda - precoCusto) / precoCusto * 100).toFixed(1)
+    : null
+
+  if (loadingProduto) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    )
+  }
+
+  if (!produto) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+          Produto não encontrado
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/produtos" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-          <ArrowLeft className="w-6 h-6 text-gray-600" />
-        </Link>
-        <h1 className="heading-1">{isNew ? 'Novo Produto' : 'Editar Produto'}</h1>
-      </div>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <h1 className="text-2xl font-bold mb-6">Editar Produto</h1>
 
-      <form onSubmit={onSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
-        {error && (
-          <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            {error}
-          </div>
-        )}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="bg-white p-6 rounded-lg shadow-sm border space-y-4">
+          <h3 className="font-semibold text-lg">Informações Básicas</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <label className="label">Nome do Produto</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome do Produto *
+              </label>
               <input
-                className="input"
-                value={form.nome}
-                onChange={(e) => onChange('nome', e.target.value)}
-                required
+                {...register('nome')}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Ex: Coca-Cola 350ml"
               />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Preço Venda (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={form.preco_venda}
-                  onChange={(e) => onChange('preco_venda', e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="label">Preço Custo (R$)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={form.preco_custo}
-                  onChange={(e) => onChange('preco_custo', e.target.value)}
-                />
-              </div>
+              {errors.nome && (
+                <p className="text-red-500 text-sm mt-1">{errors.nome.message}</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Categoria</label>
-                <select
-                  className="input"
-                  value={form.categoria}
-                  onChange={(e) => onChange('categoria', e.target.value)}
-                >
-                  <option value="">Sem Categoria</option>
-                  {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Tipo</label>
-                <select
-                  className="input"
-                  value={form.tipo}
-                  onChange={(e) => onChange('tipo', e.target.value)}
-                >
-                  <option value="COMUM">Comum (Revenda)</option>
-                  <option value="COMPOSTO">Composto (Ficha Técnica)</option>
-                  <option value="INSUMO">Insumo (Matéria Prima)</option>
-                </select>
-              </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descrição
+              </label>
+              <textarea
+                {...register('descricao')}
+                rows={3}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Descrição detalhada do produto..."
+              />
             </div>
-          </div>
 
-          <div className="space-y-4">
             <div>
-              <label className="label">SKU (Código Interno)</label>
-              <input
-                className="input"
-                value={form.sku}
-                onChange={(e) => onChange('sku', e.target.value)}
-                placeholder="Opcional"
-              />
-            </div>
-            <div>
-              <label className="label">Código de Barras (EAN)</label>
-              <input
-                className="input"
-                value={form.codigo_barras}
-                onChange={(e) => onChange('codigo_barras', e.target.value)}
-                placeholder="Opcional"
-              />
-            </div>
-            <div>
-              <label className="label">Unidade de Medida</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo *
+              </label>
               <select
-                className="input"
-                value={form.unidade}
-                onChange={(e) => onChange('unidade', e.target.value)}
+                {...register('tipo')}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
               >
-                <option value="UN">Unidade (UN)</option>
-                <option value="KG">Quilograma (KG)</option>
-                <option value="L">Litro (L)</option>
-                <option value="M">Metro (M)</option>
+                <option value={TipoProduto.SIMPLES}>Produto Simples</option>
+                <option value={TipoProduto.COMPOSTO}>Produto Composto</option>
+                <option value={TipoProduto.MATERIA_PRIMA}>Matéria Prima</option>
               </select>
             </div>
-            
-            <div className="flex items-center gap-6 pt-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => onChange('is_active', e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <span className="text-gray-700">Produto Ativo</span>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Categoria *
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.destaque}
-                  onChange={(e) => onChange('destaque', e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <span className="text-gray-700">Destaque no PDV</span>
+              <select
+                {...register('categoria_id')}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecione uma categoria</option>
+                {categorias?.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nome}
+                  </option>
+                ))}
+              </select>
+              {errors.categoria_id && (
+                <p className="text-red-500 text-sm mt-1">{errors.categoria_id.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Unidade de Medida *
+              </label>
+              <select
+                {...register('unidade_medida')}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={UnidadeMedida.UN}>Unidade (UN)</option>
+                <option value={UnidadeMedida.KG}>Quilograma (KG)</option>
+                <option value={UnidadeMedida.L}>Litro (L)</option>
+                <option value={UnidadeMedida.CX}>Caixa (CX)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <input
+                type="checkbox"
+                {...register('ativo')}
+                id="ativo"
+                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <label htmlFor="ativo" className="text-sm font-medium text-gray-700">
+                Produto ativo
               </label>
             </div>
           </div>
         </div>
 
-        <div className="pt-6 border-t border-gray-50 flex justify-end gap-3">
-          <Link href="/produtos" className="btn btn-ghost">
+        <div className="bg-white p-6 rounded-lg shadow-sm border space-y-4">
+          <h3 className="font-semibold text-lg">Precificação</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {tipo !== TipoProduto.COMPOSTO && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Preço de Custo
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  {...register('preco_custo', { valueAsNumber: true })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Preço de Venda *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register('preco_venda', { valueAsNumber: true })}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="0.00"
+              />
+              {errors.preco_venda && (
+                <p className="text-red-500 text-sm mt-1">{errors.preco_venda.message}</p>
+              )}
+            </div>
+
+            {margem !== null && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Margem de Lucro
+                </label>
+                <div className={`px-4 py-2 border rounded-lg bg-gray-50 font-semibold ${Number(margem) >= 30 ? 'text-green-600' :
+                    Number(margem) >= 15 ? 'text-yellow-600' :
+                      'text-red-600'
+                  }`}>
+                  {margem}%
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border space-y-4">
+          <h3 className="font-semibold text-lg">Códigos e Estoque</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Código de Barras
+              </label>
+              <input
+                {...register('codigo_barras')}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Ex: 7891234567890"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                SKU
+              </label>
+              <input
+                {...register('sku')}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Ex: PROD-001"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estoque Mínimo
+              </label>
+              <input
+                type="number"
+                {...register('estoque_minimo', { valueAsNumber: true })}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estoque Máximo
+              </label>
+              <input
+                type="number"
+                {...register('estoque_maximo', { valueAsNumber: true })}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Cancelar
-          </Link>
+          </button>
           <button
             type="submit"
-            disabled={loading}
-            className="btn btn-primary min-w-[150px]"
+            disabled={updateMutation.isPending}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <Save className="w-5 h-5 mr-2" />
-                Salvar Produto
-              </>
-            )}
+            {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            Atualizar Produto
           </button>
         </div>
       </form>

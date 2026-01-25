@@ -41,19 +41,6 @@ python manage.py runserver
 ### ✅ Módulos
 - **Catalog**: Produtos, Categorias, Complementos
 - **Stock**: Controle de estoque com movimentações
-- **Sales**: Vendas, Itens, Integração com estoque
-- **Financial**: Contas a Pagar/Receber
-- **Restaurant**: Mesas, Comandas, Setores de Produção
-- **Partners**: Clientes, Fornecedores
-
-### ✅ Food Service
-- Sistema de Mesas (abrir, adicionar pedidos, fechar)
-- Comandas individuais
-- Complementos de produtos
-- KDS (Kitchen Display System)
-- Dashboard com analytics
-
----
 
 ## 🌐 API Endpoints
 
@@ -74,6 +61,16 @@ python manage.py runserver
 
 ## 📚 Documentação
 
+### 📋 Análise e Planejamento (NOVO!) 🎯
+> **Análise completa do projeto com plano de melhorias para 12 semanas**
+
+- **🚀 [COMECE AQUI: Índice Geral](INDEX.md)** - Guia de navegação
+- 📊 [Resumo Executivo](RESUMO_EXECUTIVO.md) - Visão geral e plano (10 min)
+- 📑 [Análise Detalhada](ANALISE_DETALHADA_PROJETO.md) - Deep dive técnico (45 min)
+- 📋 [Plano de Execução](PLANO_EXECUCAO_MELHORIAS.md) - Passo a passo (60 min)
+- 📈 [Comparativo Estado](COMPARATIVO_ESTADO.md) - Atual vs Desejado (30 min)
+
+### Setup e Integração
 - [Setup Rápido](SETUP_RAPIDO.md)
 - [Documentação Completa](doc/README.md)
 - [Guia de Integração Front/Mobile](doc/INTEGRATION_GUIDE_FRONT_MOBILE.md)
