@@ -33,7 +33,7 @@ empresa, created = Empresa.objects.get_or_create(
     defaults={
         'razao_social': 'Projeto Nix - Empresa Padrão',
         'nome_fantasia': 'Nix ERP',
-        'ativo': True
+        'is_active': True
     }
 )
 if created:
