@@ -12,10 +12,17 @@ echo "🔄 Criando dados iniciais do sistema..."
 python manage.py shell << 'PYEOF'
 import os
 from django.contrib.auth import get_user_model
-from apps.tenant.models import Empresa
-from apps.locations.models import Endereco
-from apps.inventory.models import Deposito
-from apps.financial.models import Caixa
+from tenant.models import Empresa
+from locations.models import Endereco
+from stock.models import Deposito
+try:
+    from financial.models import Caixa
+except ImportError:
+    Caixa = None
+try:
+    from catalog.models import Categoria
+except ImportError:
+    Categoria = None
 
 User = get_user_model()
 
@@ -87,7 +94,7 @@ else:
 
 # 5. CRIAR CAIXA PRINCIPAL
 print("💰 Criando caixa principal...")
-try:
+if Caixa is not None:
     caixa, created = Caixa.objects.get_or_create(
         empresa=empresa,
         nome='Caixa Principal',
@@ -100,14 +107,12 @@ try:
         print(f"✅ Caixa criado: {caixa.nome}")
     else:
         print(f"✅ Caixa já existe: {caixa.nome}")
-except Exception as e:
-    print(f"⚠️  Erro ao criar caixa (pode não existir o modelo): {e}")
+else:
+    print("⚠️  Modelo Caixa não disponível")
 
 # 6. CRIAR CATEGORIAS PADRÃO
 print("📁 Criando categorias padrão...")
-try:
-    from apps.catalog.models import Categoria
-    
+if Categoria is not None:
     categorias_padrao = [
         {'nome': 'Bebidas', 'descricao': 'Bebidas em geral'},
         {'nome': 'Alimentos', 'descricao': 'Alimentos diversos'},
@@ -128,8 +133,8 @@ try:
             print(f"  ✅ Categoria criada: {cat.nome}")
     
     print(f"✅ {len(categorias_padrao)} categorias padrão criadas/verificadas")
-except Exception as e:
-    print(f"⚠️  Categorias não criadas: {e}")
+else:
+    print("⚠️  Modelo Categoria não disponível")
 
 print("")
 print("=" * 60)
