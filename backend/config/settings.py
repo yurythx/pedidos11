@@ -79,26 +79,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
-# Configuração dinâmica para suportar PostgreSQL via variáveis de ambiente
-if os.environ.get('DATABASE') == 'postgres':
-    DATABASES = {
-        'default': {
-            'ENGINE': os.environ.get('SQL_ENGINE', 'django.db.backends.postgresql'),
-            'NAME': os.environ.get('SQL_DATABASE', 'pedidos11'),
-            'USER': os.environ.get('SQL_USER', 'postgres'),
-            'PASSWORD': os.environ.get('SQL_PASSWORD', 'postgres'),
-            'HOST': os.environ.get('SQL_HOST', 'db'),
-            'PORT': os.environ.get('SQL_PORT', '5432'),
-        }
-    }
-else:
-    # Usando SQLite para desenvolvimento local sem Docker
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+# Usa DATABASE_URL se fornecida, caso contrário usa SQLite para desenvolvimento
+import dj_database_url
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
 
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.CustomUser'
