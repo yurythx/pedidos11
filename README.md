@@ -61,16 +61,36 @@ python manage.py runserver
 
 ## 📚 Documentação
 
-### 📋 Análise e Planejamento (NOVO!) 🎯
-> **Análise completa do projeto com plano de melhorias para 12 semanas**
+> **Toda documentação foi movida para a pasta [`docs/`](docs/)**
 
-- **🚀 [COMECE AQUI: Índice Geral](INDEX.md)** - Guia de navegação
-- 📊 [Resumo Executivo](RESUMO_EXECUTIVO.md) - Visão geral e plano (10 min)
-- 📑 [Análise Detalhada](ANALISE_DETALHADA_PROJETO.md) - Deep dive técnico (45 min)
-- 📋 [Plano de Execução](PLANO_EXECUCAO_MELHORIAS.md) - Passo a passo (60 min)
-- 📈 [Comparativo Estado](COMPARATIVO_ESTADO.md) - Atual vs Desejado (30 min)
+### 🚀 Para Começar
+- 📄 **[INICIO_RAPIDO.md](docs/INICIO_RAPIDO.md)** ← **COMECE AQUI!**
+- 📄 **[GUIA_INSTALACAO.md](docs/GUIA_INSTALACAO.md)** - Setup completo
+- 📄 **[DOCKER_GUIA.md](docs/DOCKER_GUIA.md)** - Com Docker (2 min)
+- 📄 **[CHECKLIST_VALIDACAO.md](docs/CHECKLIST_VALIDACAO.md)** - 200+ itens de teste
 
-### Setup e Integração
+### 🚀 Deploy
+- 📄 **[DEPLOY_UBUNTU.md](docs/DEPLOY_UBUNTU.md)** - Deploy em servidor Ubuntu
+- 📄 **[DEPLOY_GITHUB.md](docs/DEPLOY_GITHUB.md)** - CI/CD via GitHub
+- � **[GITHUB_COMPLETO.md](docs/GITHUB_COMPLETO.md)** - Setup GitHub completo
+
+### 📊 Visão Geral
+- 📄 **[PROJETO_COMPLETO_FINAL.md](docs/PROJETO_COMPLETO_FINAL.md)** - Resumo executivo
+- 📄 **[INDEX.md](docs/INDEX.md)** - Navegação completa de toda documentação
+- � **[CONCLUSAO.md](docs/CONCLUSAO.md)** - Próximos passos
+- 📄 **[PLANO_ACAO_EXECUTAVEL.md](docs/PLANO_ACAO_EXECUTAVEL.md)** - Roadmap executável
+
+### 🔧 Técnica
+- � **[ANALISE_DETALHADA_PROJETO.md](docs/ANALISE_DETALHADA_PROJETO.md)** - Análise backend
+- � **[ROADMAP_IMPLEMENTACAO.md](docs/ROADMAP_IMPLEMENTACAO.md)** - Roadmap 12 semanas
+- 📄 **[START_HERE_FRONTEND.md](docs/START_HERE_FRONTEND.md)** - Guia frontend
+
+### 📈 Estratégica
+- � **[RESUMO_EXECUTIVO.md](docs/RESUMO_EXECUTIVO.md)** - Para stakeholders
+- 📄 **[COMPARATIVO_ESTADO.md](docs/COMPARATIVO_ESTADO.md)** - ROI e métricas
+- 📄 **[PLANO_EXECUCAO_MELHORIAS.md](docs/PLANO_EXECUCAO_MELHORIAS.md)** - Plano ação
+
+**📁 Veja todos os documentos em [`docs/README.md`](docs/README.md)**
 - [Setup Rápido](SETUP_RAPIDO.md)
 - [Documentação Completa](doc/README.md)
 - [Guia de Integração Front/Mobile](doc/INTEGRATION_GUIDE_FRONT_MOBILE.md)
