@@ -82,7 +82,7 @@ ALLOWED_HOSTS=$DOMAIN,www.$DOMAIN,localhost,127.0.0.1
 DATABASE_URL=postgresql://nix_user:$DB_PASSWORD@db:5432/nix_db
 
 # CORS
-CORS_ALLOWED_ORIGINS=https://$DOMAIN,https://www.$DOMAIN,http://localhost:3000
+CORS_ALLOWED_ORIGINS=https://$DOMAIN,https://www.$DOMAIN,http://localhost:3002,http://$DOMAIN:3002
 
 # Security
 SECURE_SSL_REDIRECT=False
@@ -120,7 +120,7 @@ if [ -z "$DOMAIN" ]; then
         
         cat > "$PROJECT_DIR/frontend/.env.local" << EOF
 # API URL
-NEXT_PUBLIC_API_URL=https://api.$DOMAIN/api/v1
+NEXT_PUBLIC_API_URL=http://$DOMAIN:8002/api/v1
 
 # App Info
 NEXT_PUBLIC_APP_NAME=Projeto Nix
@@ -396,7 +396,7 @@ health_check() {
     # Backend health check
     log "Verificando backend..."
     while [ $elapsed -lt $timeout ]; do
-        if curl -sf http://localhost:8000/admin/ > /dev/null 2>&1; then
+        if curl -sf http://localhost:8002/admin/ > /dev/null 2>&1; then
             success "Backend está saudável"
             break
         fi
@@ -413,7 +413,7 @@ health_check() {
     log "Verificando frontend..."
     elapsed=0
     while [ $elapsed -lt $timeout ]; do
-        if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+        if curl -sf http://localhost:3002 > /dev/null 2>&1; then
             success "Frontend está saudável"
             break
         fi
@@ -541,8 +541,8 @@ main() {
     log "📊 Informações do Deploy:"
     log "   - Commit: $(cat /tmp/new_commit)"
     log "   - Data: $(date +'%Y-%m-%d %H:%M:%S')"
-    log "   - Backend: http://localhost:8000"
-    log "   - Frontend: http://localhost:3000"
+    log "   - Backend: http://localhost:8002"
+    log "   - Frontend: http://localhost:3002"
     log ""
     log "📝 Logs salvos em: $LOG_FILE"
     log "💾 Backup salvo em: $BACKUP_DIR"
