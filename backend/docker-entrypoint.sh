@@ -29,7 +29,7 @@ User = get_user_model()
 # 1. CRIAR EMPRESA PADRÃO
 print("📊 Criando empresa...")
 empresa, created = Empresa.objects.get_or_create(
-    cnpj='00000000000100',  # CNPJ padrão
+    cnpj='00.000.000/0001-91',  # CNPJ válido para testes
     defaults={
         'razao_social': 'Projeto Nix - Empresa Padrão',
         'nome_fantasia': 'Nix ERP',
