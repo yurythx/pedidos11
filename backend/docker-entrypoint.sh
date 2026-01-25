@@ -5,6 +5,10 @@ echo "🔄 Aguardando banco de dados..."
 sleep 5
 echo "✅ Continuando..."
 
+echo "🔄 Criando diretório static..."
+mkdir -p /app/static
+echo "✅ Diretório static criado"
+
 echo "🔄 Executando migrações..."
 python manage.py migrate --noinput
 
@@ -12,6 +16,7 @@ echo "🔄 Criando dados iniciais do sistema..."
 python manage.py shell << 'PYEOF'
 import os
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from tenant.models import Empresa
 from locations.models import Endereco
 from stock.models import Deposito
@@ -44,16 +49,17 @@ else:
 # 2. CRIAR ENDEREÇO DA EMPRESA
 print("📍 Criando endereço da empresa...")
 endereco, created = Endereco.objects.get_or_create(
-    empresa=empresa,
-    tipo='COMERCIAL',
+    content_type=ContentType.objects.get_for_model(empresa),
+    object_id=empresa.id,
     defaults={
+        'empresa': empresa,
+        'tipo': 'COMERCIAL',
         'logradouro': 'Rua Principal',
         'numero': '100',
         'bairro': 'Centro',
-        'cidade': 'Cidade',
-        'estado': 'SP',
-        'cep': '00000-000',
-        'is_principal': True
+        'cidade': 'São Paulo',
+        'uf': 'SP',
+        'cep': '01001-000'
     }
 )
 if created:
@@ -83,8 +89,7 @@ deposito, created = Deposito.objects.get_or_create(
     codigo='DEP001',
     defaults={
         'nome': 'Depósito Principal',
-        'is_padrao': True,
-        'ativo': True
+        'is_padrao': True
     }
 )
 if created:
@@ -125,8 +130,7 @@ if Categoria is not None:
             empresa=empresa,
             nome=cat_data['nome'],
             defaults={
-                'descricao': cat_data['descricao'],
-                'ativo': True
+                'descricao': cat_data['descricao']
             }
         )
         if created:
