@@ -67,8 +67,8 @@ if created:
 else:
     print(f"✅ Endereço já existe")
 
-# 3. CRIAR SUPERUSUÁRIO
-print("👤 Criando superusuário...")
+# 3. CRIAR SUPERUSUÁRIO ADMIN
+print("👤 Criando superusuário admin...")
 if not User.objects.filter(username='admin').exists():
     user = User.objects.create_superuser(
         username='admin',
@@ -81,6 +81,23 @@ if not User.objects.filter(username='admin').exists():
     print(f"✅ Superusuário criado: admin/admin123")
 else:
     print(f"✅ Superusuário já existe: admin")
+
+# 3.1 CRIAR USUÁRIO SUPORTE (Vendedor + Caixa)
+print("👤 Criando usuário suporte...")
+if not User.objects.filter(username='suporte').exists():
+    suporte = User.objects.create_superuser(
+        username='suporte',
+        email='suporte@projetonix.com',
+        password='suporte123',
+        empresa=empresa,
+        first_name='Suporte',
+        last_name='Sistema',
+        is_vendedor=True,
+        is_caixa=True
+    )
+    print(f"✅ Usuário suporte criado: suporte/suporte123 (Superuser + Vendedor + Caixa)")
+else:
+    print(f"✅ Usuário suporte já existe")
 
 # 4. CRIAR DEPÓSITO PRINCIPAL
 print("📦 Criando depósito principal...")
