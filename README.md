@@ -30,6 +30,31 @@ python manage.py runserver
 
 ---
 
+## 🚀 Deploy Automatizado
+
+**Deploy em 1 comando!**
+
+### Linux/Ubuntu (Servidor)
+```bash
+./deploy.sh
+```
+
+### Windows (Local)
+```powershell
+.\deploy.ps1
+```
+
+**Inclui:**
+- ✅ 11 verificações automáticas
+- ✅ Backup automático
+- ✅ Health checks completos
+- ✅ Rollback automático se falhar
+- ✅ Logs detalhados
+
+📖 **Documentação:** [DEPLOY_AUTOMATIZADO.md](docs/DEPLOY_AUTOMATIZADO.md)
+
+---
+
 ## 📦 Features Implementadas
 
 ### ✅ Core
@@ -70,14 +95,15 @@ python manage.py runserver
 - 📄 **[CHECKLIST_VALIDACAO.md](docs/CHECKLIST_VALIDACAO.md)** - 200+ itens de teste
 
 ### 🚀 Deploy
+- 📄 **[DEPLOY_AUTOMATIZADO.md](docs/DEPLOY_AUTOMATIZADO.md)** ← **1 comando!**
 - 📄 **[DEPLOY_UBUNTU.md](docs/DEPLOY_UBUNTU.md)** - Deploy em servidor Ubuntu
 - 📄 **[DEPLOY_GITHUB.md](docs/DEPLOY_GITHUB.md)** - CI/CD via GitHub
-- � **[GITHUB_COMPLETO.md](docs/GITHUB_COMPLETO.md)** - Setup GitHub completo
+- 📄 **[GITHUB_COMPLETO.md](docs/GITHUB_COMPLETO.md)** - Setup GitHub completo
 
 ### 📊 Visão Geral
 - 📄 **[PROJETO_COMPLETO_FINAL.md](docs/PROJETO_COMPLETO_FINAL.md)** - Resumo executivo
 - 📄 **[INDEX.md](docs/INDEX.md)** - Navegação completa de toda documentação
-- � **[CONCLUSAO.md](docs/CONCLUSAO.md)** - Próximos passos
+-  **[CONCLUSAO.md](docs/CONCLUSAO.md)** - Próximos passos
 - 📄 **[PLANO_ACAO_EXECUTAVEL.md](docs/PLANO_ACAO_EXECUTAVEL.md)** - Roadmap executável
 
 ### 🔧 Técnica

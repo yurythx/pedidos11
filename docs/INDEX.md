@@ -297,6 +297,14 @@ Estas escolhas estão corretas.
 
 ---
 
+## 🐳 Infraestrutura e Deploy
+
+- 📄 **[DEPLOY_AUTOMATIZADO.md](DEPLOY_AUTOMATIZADO.md)** ← **SCRIPTS 1 COMANDO**
+- 📄 [DOCKER_GUIA.md](DOCKER_GUIA.md) - Guia completo de uso do Docker
+- 📄 [DEPLOY_UBUNTU.md](DEPLOY_UBUNTU.md) - Deploy manual em servidor Ubuntu
+- 📄 [DEPLOY_GITHUB.md](DEPLOY_GITHUB.md) - Deploy automático via GitHub Actions
+- 📄 [GITHUB_COMPLETO.md](GITHUB_COMPLETO.md) - Setup completo do GitHub
+
 ### ☑️ Week 12 - Sprint 3 Review
 - [ ] Frontend 100% completo
 - [ ] Deploy automatizado

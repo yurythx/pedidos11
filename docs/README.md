@@ -60,12 +60,10 @@
 
 ## 🐳 INFRAESTRUTURA
 
-### Docker
-- 📄 **[DOCKER_GUIA.md](DOCKER_GUIA.md)** - Guia completo Docker
-- 📄 **[DEPLOY_UBUNTU.md](DEPLOY_UBUNTU.md)** - Deploy com Docker no Ubuntu
-
-### CI/CD
-- 📄 **[DEPLOY_GITHUB.md](DEPLOY_GITHUB.md)** - Deploy automático via GitHub
+### 🚀 Deploy
+- 📄 **[DEPLOY_AUTOMATIZADO.md](DEPLOY_AUTOMATIZADO.md)** ← **SCRIPTS 1 COMANDO**
+- 📄 **[DEPLOY_UBUNTU.md](DEPLOY_UBUNTU.md)** - Deploy manual servidor Ubuntu
+- 📄 **[DEPLOY_GITHUB.md](DEPLOY_GITHUB.md)** - CI/CD automático via GitHub
 - 📄 **[GITHUB_COMPLETO.md](GITHUB_COMPLETO.md)** - Setup GitHub completo
 
 ---
