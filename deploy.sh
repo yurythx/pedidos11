@@ -15,13 +15,18 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configurações
-PROJECT_DIR="/home/deploy/pedidos11"
-BACKUP_DIR="/home/deploy/backups"
-LOG_FILE="/home/deploy/deploy.log"
+# Auto-detectar diretório do script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIR="$SCRIPT_DIR"
+BACKUP_DIR="$PROJECT_DIR/backups"
+LOG_FILE="$PROJECT_DIR/deploy.log"
 MAX_BACKUPS=5
 HEALTH_CHECK_TIMEOUT=60
 REQUIRED_DISK_SPACE=1000000  # 1GB em KB
+
+# Criar diretórios necessários
+mkdir -p "$BACKUP_DIR"
+touch "$LOG_FILE"
 
 ################################################################################
 # FUNÇÕES AUXILIARES
