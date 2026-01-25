@@ -104,7 +104,6 @@ if Caixa is not None:
         empresa=empresa,
         nome='Caixa Principal',
         defaults={
-            'descricao': 'Caixa principal do estabelecimento',
             'ativo': True
         }
     )
