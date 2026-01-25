@@ -73,7 +73,7 @@ export default function LoginPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="label">Senha</label>
                 <input
@@ -88,8 +88,13 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="p-4 rounded-xl bg-red-50 text-red-600 text-sm border border-red-100 flex items-center gap-2">
-                 <span>⚠️</span> {error}
+              <div className="p-6 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white text-center shadow-2xl border-2 border-red-400 animate-shake">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <span className="text-3xl">⚠️</span>
+                  <h3 className="text-xl font-bold">Erro ao fazer login</h3>
+                </div>
+                <p className="text-white/90">{error}</p>
+                <p className="text-sm text-white/75 mt-2">Verifique suas credenciais e tente novamente.</p>
               </div>
             )}
 
