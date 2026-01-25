@@ -49,6 +49,100 @@ warning() {
 }
 
 ################################################################################
+# CRIAR ARQUIVOS .ENV SE NÃO EXISTIREM
+################################################################################
+
+create_env_files() {
+    log "🔧 Verificando arquivos .env..."
+    
+    # Backend .env
+    if [ ! -f "$PROJECT_DIR/backend/.env" ]; then
+        warning "Arquivo backend/.env não encontrado. Criando..."
+        
+        # Gerar SECRET_KEY aleatória
+        SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(50))" 2>/dev/null || \
+                     openssl rand -base64 50 2>/dev/null || \
+                     cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 50 | head -n 1)
+        
+        # Solicitar informações
+        read -p "Digite o domínio do servidor (ex: api.seudominio.com): " DOMAIN
+        DOMAIN=${DOMAIN:-localhost}
+        
+        read -p "Digite a senha do banco PostgreSQL [nix_password_2026]: " DB_PASSWORD
+        DB_PASSWORD=${DB_PASSWORD:-nix_password_2026}
+        
+        # Criar arquivo .env
+        cat > "$PROJECT_DIR/backend/.env" << EOF
+# Django Settings
+DEBUG=False
+SECRET_KEY=$SECRET_KEY
+ALLOWED_HOSTS=$DOMAIN,www.$DOMAIN,localhost,127.0.0.1
+
+# Database
+DATABASE_URL=postgresql://nix_user:$DB_PASSWORD@db:5432/nix_db
+
+# CORS
+CORS_ALLOWED_ORIGINS=https://$DOMAIN,https://www.$DOMAIN,http://localhost:3000
+
+# Security
+SECURE_SSL_REDIRECT=False
+SESSION_COOKIE_SECURE=False
+CSRF_COOKIE_SECURE=False
+
+# Email (opcional - configure depois)
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+# EMAIL_HOST=smtp.gmail.com
+# EMAIL_PORT=587
+# EMAIL_USE_TLS=True
+# EMAIL_HOST_USER=seu-email@gmail.com
+# EMAIL_HOST_PASSWORD=sua-senha-app
+
+# Sentry (opcional)
+# SENTRY_DSN=https://xxxxx@sentry.io/xxxxx
+EOF
+        
+        success "Arquivo backend/.env criado!"
+        log "SECRET_KEY gerada automaticamente"
+        log "Domínio configurado: $DOMAIN"
+    else
+        success "Arquivo backend/.env já existe"
+    fi
+    
+    # Frontend .env.local
+    if [ ! -f "$PROJECT_DIR/frontend/.env.local" ]; then
+        warning "Arquivo frontend/.env.local não encontrado. Criando..."
+        
+        # Usar mesmo domínio do backend
+if [ -z "$DOMAIN" ]; then
+            read -p "Digite o domínio do servidor (ex: seudominio.com): " DOMAIN
+            DOMAIN=${DOMAIN:-localhost}
+        fi
+        
+        cat > "$PROJECT_DIR/frontend/.env.local" << EOF
+# API URL
+NEXT_PUBLIC_API_URL=https://api.$DOMAIN/api/v1
+
+# App Info
+NEXT_PUBLIC_APP_NAME=Projeto Nix
+NEXT_PUBLIC_APP_VERSION=1.0.0
+
+# Environment
+NEXT_PUBLIC_ENV=production
+EOF
+        
+        success "Arquivo frontend/.env.local criado!"
+    else
+        success "Arquivo frontend/.env.local já existe"
+    fi
+    
+    # Atualizar docker-compose.prod.yml com senha do banco
+    if [ ! -z "$DB_PASSWORD" ] && [ -f "$PROJECT_DIR/docker-compose.prod.yml" ]; then
+        log "Atualizando senha do banco no docker-compose.prod.yml..."
+        sed -i "s/POSTGRES_PASSWORD:.*/POSTGRES_PASSWORD: $DB_PASSWORD/" "$PROJECT_DIR/docker-compose.prod.yml"
+    fi
+}
+
+################################################################################
 # VERIFICAÇÕES PRÉ-DEPLOY
 ################################################################################
 
@@ -395,6 +489,9 @@ main() {
         cd "$PROJECT_DIR"
         git rev-parse HEAD > /tmp/previous_commit
     fi
+    
+    # 0. Criar arquivos .env se necessário
+    create_env_files
     
     # 1. Verificações pré-deploy
     check_prerequisites
