@@ -92,7 +92,23 @@ class VendaService:
                 "Adicione produtos antes de finalizar."
             )
         
-        # 5. VALIDAÇÃO PRÉVIA: Usa StockService para validar estoque
+        # 5. VALIDAÇÃO DE CRÉDITO (Se for Conta Cliente)
+        if tipo_pagamento == 'CONTA_CLIENTE':
+            if not venda.cliente:
+                raise ValidationError("Vendas a prazo exigem um cliente cadastrado.")
+            
+            # Se limite_credito > 0, valida saldo
+            if venda.cliente.limite_credito > 0:
+                saldo_futuro = venda.cliente.saldo_devedor + venda.total_liquido
+                if saldo_futuro > venda.cliente.limite_credito:
+                    raise ValidationError(
+                        f"Limite de crédito excedido para {venda.cliente.nome}. "
+                        f"Limite: R$ {venda.cliente.limite_credito}, "
+                        f"Saldo Atual: R$ {venda.cliente.saldo_devedor}, "
+                        f"Total Venda: R$ {venda.total_liquido}."
+                    )
+        
+        # 6. VALIDAÇÃO PRÉVIA: Usa StockService para validar estoque
         # (Funciona com explosão de BOM e lotes)
         erros_estoque = []
         for item in itens:

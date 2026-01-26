@@ -145,11 +145,15 @@ class FinanceiroService:
             'PIX': TipoPagamento.PIX,
             'CARTAO_DEBITO': TipoPagamento.CARTAO_DEBITO,
             'CARTAO_CREDITO': TipoPagamento.CARTAO_CREDITO,
+            'CONTA_CLIENTE': TipoPagamento.CONTA_CLIENTE,
         }
+        
+        # Vou atualizar o Enum de TipoPagamento no financial/models.py também para ter CONTA_CLIENTE
         tipo = tipo_map.get(venda.tipo_pagamento, TipoPagamento.DINHEIRO)
         
         # Define status inicial (paga se for dinheiro/pix/debito)
-        status_conta = StatusConta.PAGA if tipo in [TipoPagamento.DINHEIRO, TipoPagamento.PIX, TipoPagamento.CARTAO_DEBITO] else StatusConta.PENDENTE
+        pagos_imediato = [TipoPagamento.DINHEIRO, TipoPagamento.PIX, TipoPagamento.CARTAO_DEBITO]
+        status_conta = StatusConta.PAGA if tipo in pagos_imediato and tipo != TipoPagamento.CONTA_CLIENTE else StatusConta.PENDENTE
         
         # Se dias_vencimento > 0, usa. Senão hoje.
         if dias_vencimento > 0:

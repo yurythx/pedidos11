@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react'
 import { request } from '../src/lib/http/request'
-import { 
-  DollarSign, 
-  ShoppingBag, 
-  TrendingUp, 
+import {
+  DollarSign,
+  ShoppingBag,
+  TrendingUp,
   Calendar,
   AlertCircle,
   ArrowUpCircle,
@@ -82,19 +82,31 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-pulse">
-            {[1,2,3,4].map(i => <div key={i} className="h-32 bg-gray-100 rounded-xl" />)}
-        </div>
-      )}
-      
-      {error && (
+      {loading ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="card p-4 border border-base-200 animate-pulse">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                    <div className="h-8 w-32 bg-gray-200 rounded"></div>
+                  </div>
+                  <div className="h-12 w-12 bg-gray-200 rounded-xl"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="card p-6 border border-base-200 h-64 animate-pulse bg-gray-50/50"></div>
+            <div className="card p-6 border border-base-200 h-64 animate-pulse bg-gray-50/50"></div>
+          </div>
+        </>
+      ) : error ? (
         <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-2 border border-red-100">
           <AlertCircle size={20} /> {error}
         </div>
-      )}
-
-      {data && !loading && (
+      ) : data ? (
         <>
           {/* KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -122,7 +134,7 @@ export default function DashboardPage() {
                 <BarChart3 className="w-5 h-5 text-blue-500" />
                 Vendas por Hora
               </h3>
-              
+
               <div className="h-48 flex items-end gap-2">
                 {data.vendas_por_hora.length === 0 ? (
                   <div className="w-full text-center text-gray-400 text-sm self-center">
@@ -134,7 +146,7 @@ export default function DashboardPage() {
                     const total = venda ? Number(venda.total) : 0
                     const max = getMaxVendaHora()
                     const height = max > 0 ? (total / max) * 100 : 0
-                    
+
                     return (
                       <div key={hora} className="flex-1 flex flex-col justify-end group relative">
                         {total > 0 && (
@@ -142,7 +154,7 @@ export default function DashboardPage() {
                             {formatBRL(total)}
                           </div>
                         )}
-                        <div 
+                        <div
                           className={`w-full rounded-t-sm transition-all duration-500 ${total > 0 ? 'bg-blue-500 hover:bg-blue-600 cursor-pointer' : 'bg-gray-100'}`}
                           style={{ height: `${total > 0 ? Math.max(height, 5) : 5}%` }}
                         ></div>
@@ -162,7 +174,7 @@ export default function DashboardPage() {
                 <Award className="w-5 h-5 text-yellow-500" />
                 Top 5 Produtos
               </h3>
-              
+
               <div className="space-y-4">
                 {data.ranking_produtos.length === 0 ? (
                   <div className="text-center text-gray-400 text-sm py-10">
@@ -173,9 +185,9 @@ export default function DashboardPage() {
                     <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                       <div className="flex items-center gap-3">
                         <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold 
-                          ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : 
-                            idx === 1 ? 'bg-gray-200 text-gray-700' : 
-                            idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-white text-gray-500 border border-gray-200'}`}>
+                          ${idx === 0 ? 'bg-yellow-100 text-yellow-700' :
+                            idx === 1 ? 'bg-gray-200 text-gray-700' :
+                              idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-white text-gray-500 border border-gray-200'}`}>
                           {idx + 1}
                         </span>
                         <div>
@@ -193,7 +205,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </>
-      )}
+      ) : null}
     </div>
   )
 }

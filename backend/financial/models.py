@@ -28,6 +28,7 @@ class TipoPagamento(models.TextChoices):
     BOLETO = 'BOLETO', 'Boleto'
     TRANSFERENCIA = 'TRANSFERENCIA', 'Transferência Bancária'
     CHEQUE = 'CHEQUE', 'Cheque'
+    CONTA_CLIENTE = 'CONTA_CLIENTE', 'Conta Cliente (A Prazo)'
 
 
 class ContaReceber(TenantModel):

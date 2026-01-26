@@ -14,6 +14,7 @@ from partners.views import ClienteViewSet, FornecedorViewSet, ColaboradorViewSet
 from financial.views import ContaReceberViewSet, ContaPagarViewSet, CaixaViewSet, SessaoCaixaViewSet
 from restaurant.views import SetorImpressaoViewSet, MesaViewSet, ComandaViewSet, KdsViewSet
 from api.kds_dashboard_views import ProducaoViewSet, dashboard_resumo_dia
+from api.health_views import health_check
 from authentication.models import CustomUser
 from authentication.serializers import UserSerializer
 from locations.models import Endereco
@@ -116,4 +117,7 @@ urlpatterns = [
     
     # Dashboard Analytics
     path('dashboard/resumo-dia/', dashboard_resumo_dia, name='dashboard-resumo-dia'),
+    
+    # Health Check
+    path('health/', health_check, name='health-check'),
 ]

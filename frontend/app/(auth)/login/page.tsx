@@ -6,26 +6,61 @@ import type { LoginResponse } from '../../../src/types'
 import { useRouter } from 'next/navigation'
 import { request } from '../../../src/lib/http/request'
 import { Store, ArrowRight, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError(null)
     try {
       const data = await request.post<LoginResponse>('/auth/token/', { username, password })
       useAuthStore.getState().login(data.user, { access: data.access, refresh: data.refresh })
       useAuthStore.getState().setTenantId(data.user.empresa_id)
+
+      toast.success(`Bem-vindo de volta, ${data.user.first_name || data.user.username}!`, {
+        description: 'Acessando seu painel de controle...',
+      })
+
       router.push('/')
     } catch (err: any) {
-      const msg = err?.message ?? 'Credenciais inválidas ou erro de rede.'
-      setError(msg)
+      console.error('Erro detalhado no login:', err)
+
+      const status = err?.status
+      const message = err?.message || 'Erro inesperado'
+      const details = err?.details
+
+      let errorTitle = 'Falha no Login'
+      let errorDesc = message
+
+      if (status === 401) {
+        errorTitle = 'Credenciais Inválidas'
+        errorDesc = 'Usuário ou senha incorretos. Verifique seus dados.'
+      } else if (status === 403) {
+        errorTitle = 'Acesso Negado'
+        errorDesc = 'Sua conta pode estar inativa ou sem permissões.'
+      } else if (!status) {
+        errorTitle = 'Erro de Conexão'
+        errorDesc = 'Não foi possível conectar ao servidor. Verifique sua internet.'
+      }
+
+      toast.error(errorTitle, {
+        description: errorDesc,
+        duration: 5000,
+      })
+
+      // Se houver detalhes específicos do Django (como campos obrigatórios)
+      if (details && typeof details === 'object') {
+        Object.entries(details).forEach(([key, value]) => {
+          if (key !== 'detail' && key !== 'message') {
+            toast.warning(`Campo ${key}: ${value}`)
+          }
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -86,17 +121,6 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-
-            {error && (
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-red-500 to-red-600 text-white text-center shadow-2xl border-2 border-red-400 animate-shake">
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <span className="text-3xl">⚠️</span>
-                  <h3 className="text-xl font-bold">Erro ao fazer login</h3>
-                </div>
-                <p className="text-white/90">{error}</p>
-                <p className="text-sm text-white/75 mt-2">Verifique suas credenciais e tente novamente.</p>
-              </div>
-            )}
 
             <button
               type="submit"

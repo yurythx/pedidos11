@@ -1,0 +1,13 @@
+# CORREÇÃO APLICADA - Execute no servidor
+
+# 1. Pull da atualização
+git pull origin main
+
+# 2. Execute novamente
+./deploy.sh
+
+# Agora vai funcionar! O script:
+# - Auto-detecta o diretório (/home/suporte/pedidos11)
+# - Cria pasta backups/ automaticamente
+# - Cria arquivo deploy.log automaticamente
+# - Funciona em qualquer local

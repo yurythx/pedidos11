@@ -14,7 +14,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-CHANGE-THIS-IN-PRODUC
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -160,13 +161,13 @@ REST_FRAMEWORK = {
         'api.throttling.SustainedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',              # Anônimos: 100 req/hora
-        'anon_strict': '20/hour',        # Anônimos (endpoints sensíveis)
-        'user': '10000/day',             # Autenticados: 10k req/dia
-        'burst': '60/minute',            # Burst: 60 req/min
-        'sustained': '1000/hour',        # Sustentado: 1k req/hora
-        'vendas': '100/minute',          # Vendas: 100 req/min
-        'relatorios': '10/minute',       # Relatórios: 10 req/min
+        'anon': '1000/hour',             # Aumentado para não travar
+        'anon_strict': '100/hour',
+        'user': '100000/day',            # Aumentado significativamente
+        'burst': '200/minute',
+        'sustained': '5000/hour',
+        'vendas': '500/minute',
+        'relatorios': '100/minute',
     },
     
     # Renderização
@@ -174,6 +175,19 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',  # Apenas em dev
     ],
+}
+
+# Simple JWT Configuration
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
 # drf-spectacular (API Documentation)
@@ -251,21 +265,20 @@ SPECTACULAR_SETTINGS = {
 }
 
 # CORS
-if os.environ.get('CORS_ALLOW_ALL', 'False') == 'True':
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOWED_ORIGINS = os.environ.get(
-        'CORS_ALLOWED_ORIGINS',
-        'http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001'
-    ).split(',')
-
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# CSRF Trusted Origins (incluindo domínios do Cloudflare)
-CSRF_TRUSTED_ORIGINS = os.environ.get(
-    'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:3000,http://127.0.0.1:3000,https://projetohavoc.shop,https://api.projetohavoc.shop'
-).split(',')
+# CSRF Trusted Origins - Liberado para os domínios principais e localhost
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3002',
+    'https://projetohavoc.shop',
+    'https://api.projetohavoc.shop',
+]
+
+# Whitenoise compression and caching
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Security Settings (Production)
 if not DEBUG:
@@ -279,6 +292,28 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     USE_X_FORWARDED_HOST = True
     USE_X_FORWARDED_PORT = True
+
+# Configuração de Email (SMTP)
+# Descomente e preencha para habilitar envio de emails
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+# EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+# EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+# EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+# DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Nix Food <noreply@nixfood.com>')
+
+# Sentry (Observabilidade)
+# Descomente para habilitar monitoramento de erros em produção
+# import sentry_sdk
+# from sentry_sdk.integrations.django import DjangoIntegration
+# if not DEBUG:
+#     sentry_sdk.init(
+#         dsn=os.environ.get('SENTRY_DSN', ''),
+#         integrations=[DjangoIntegration()],
+#         traces_sample_rate=0.1,
+#         send_default_pii=True
+#     )
 
 # Configurações de Negócio
 # Desativa controle de Lotes (FIFO/FEFO) para facilitar testes.

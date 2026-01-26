@@ -28,6 +28,7 @@ class TipoPagamento(models.TextChoices):
     CARTAO_CREDITO = 'CARTAO_CREDITO', 'Cartão de Crédito'
     BOLETO = 'BOLETO', 'Boleto'
     TRANSFERENCIA = 'TRANSFERENCIA', 'Transferência Bancária'
+    CONTA_CLIENTE = 'CONTA_CLIENTE', 'Conta Cliente (A Prazo)'
 
 
 class StatusProducao(models.TextChoices):

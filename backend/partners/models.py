@@ -162,6 +162,24 @@ class Cliente(TenantModel):
         related_query_name='cliente'
     )
     
+    # Controle de crédito
+    limite_credito = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Limite de Crédito',
+        help_text='Limite máximo para vendas a prazo (0 = sem limite)'
+    )
+    
+    saldo_devedor = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Saldo Devedor',
+        help_text='Total que o cliente deve atualmente (atualizado pelo financeiro)'
+    )
+
     # Observações
     observacoes = models.TextField(
         blank=True,
