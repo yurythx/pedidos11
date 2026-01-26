@@ -58,7 +58,7 @@ class SessaoCaixaViewSet(viewsets.ModelViewSet):
         """Retorna a sessão aberta do usuário atual."""
         sessao = CaixaService.get_sessao_aberta(request.user)
         if not sessao:
-            return Response({'detail': 'Nenhuma sessão aberta'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(None, status=status.HTTP_200_OK)
         return Response(self.get_serializer(sessao).data)
 
     @action(detail=False, methods=['post'])

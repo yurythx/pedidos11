@@ -5,8 +5,9 @@ const BASE_URL = '/categorias'
 
 export const categoriesApi = {
     async list(): Promise<Categoria[]> {
-        const response = await request.get<Categoria[]>(`${BASE_URL}/`)
-        return response
+        const response = await request.get<any>(`${BASE_URL}/`)
+        // Se a resposta vier paginada, retorna apenas os resultados
+        return Array.isArray(response) ? response : (response.results || [])
     },
 
     async get(id: string): Promise<Categoria> {

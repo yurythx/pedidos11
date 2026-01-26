@@ -33,7 +33,7 @@ export function ProductFilters({ filters, onChange }: Props) {
                         placeholder="Buscar produto..."
                         value={filters.search || ''}
                         onChange={(e) => handleChange('search', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     />
                 </div>
 
@@ -41,10 +41,10 @@ export function ProductFilters({ filters, onChange }: Props) {
                 <select
                     value={filters.categoria_id || ''}
                     onChange={(e) => handleChange('categoria_id', e.target.value || undefined)}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 >
                     <option value="">Todas as categorias</option>
-                    {categorias?.map((cat) => (
+                    {(Array.isArray(categorias) ? categorias : []).map((cat: any) => (
                         <option key={cat.id} value={cat.id}>
                             {cat.nome}
                         </option>
@@ -55,7 +55,7 @@ export function ProductFilters({ filters, onChange }: Props) {
                 <select
                     value={filters.tipo || ''}
                     onChange={(e) => handleChange('tipo', e.target.value as TipoProduto || undefined)}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 >
                     <option value="">Todos os tipos</option>
                     <option value={TipoProduto.SIMPLES}>Simples</option>
@@ -69,7 +69,7 @@ export function ProductFilters({ filters, onChange }: Props) {
                     placeholder="Preço mín"
                     value={filters.preco_min || ''}
                     onChange={(e) => handleChange('preco_min', e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 />
 
                 {/* Preço Máximo */}
@@ -78,14 +78,14 @@ export function ProductFilters({ filters, onChange }: Props) {
                     placeholder="Preço máx"
                     value={filters.preco_max || ''}
                     onChange={(e) => handleChange('preco_max', e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 />
 
                 {/* Ativo */}
                 <select
                     value={filters.ativo === undefined ? '' : filters.ativo.toString()}
                     onChange={(e) => handleChange('ativo', e.target.value === '' ? undefined : e.target.value === 'true')}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 >
                     <option value="">Todos status</option>
                     <option value="true">Ativos</option>
@@ -96,7 +96,7 @@ export function ProductFilters({ filters, onChange }: Props) {
                 <select
                     value={filters.ordering || ''}
                     onChange={(e) => handleChange('ordering', e.target.value || undefined)}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 >
                     <option value="">Ordenar por...</option>
                     <option value="nome">Nome (A-Z)</option>

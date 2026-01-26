@@ -35,7 +35,7 @@ export function ProductList() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         )
     }
@@ -58,7 +58,7 @@ export function ProductList() {
                 </div>
                 <button
                     onClick={() => router.push('/produtos/novo')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                 >
                     <Plus className="w-5 h-5" />
                     Novo Produto
