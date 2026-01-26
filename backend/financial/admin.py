@@ -2,7 +2,36 @@
 Django Admin para app Financial.
 """
 from django.contrib import admin
-from .models import ContaReceber, ContaPagar
+from .models import ContaReceber, ContaPagar, Caixa, SessaoCaixa, MovimentoCaixa
+
+
+@admin.register(Caixa)
+class CaixaAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'codigo_terminal', 'ativo']
+    list_filter = ['ativo']
+    search_fields = ['nome', 'codigo_terminal']
+
+
+class MovimentoCaixaInline(admin.TabularInline):
+    model = MovimentoCaixa
+    extra = 0
+    readonly_fields = ['data_hora']
+
+
+@admin.register(SessaoCaixa)
+class SessaoCaixaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'caixa', 'operador', 'status', 'data_abertura', 'data_fechamento', 'saldo_final_calculado', 'diferenca_caixa']
+    list_filter = ['status', 'data_abertura', 'caixa']
+    search_fields = ['operador__username', 'operador__first_name']
+    readonly_fields = ['data_abertura', 'saldo_final_calculado', 'diferenca_caixa']
+    inlines = [MovimentoCaixaInline]
+
+
+@admin.register(MovimentoCaixa)
+class MovimentoCaixaAdmin(admin.ModelAdmin):
+    list_display = ['tipo', 'sessao', 'valor', 'descricao', 'data_hora']
+    list_filter = ['tipo', 'data_hora']
+    search_fields = ['descricao', 'sessao__id']
 
 
 @admin.register(ContaReceber)

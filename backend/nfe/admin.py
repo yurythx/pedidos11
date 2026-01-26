@@ -2,7 +2,39 @@
 Django Admin para NFe - Projeto Nix.
 """
 from django.contrib import admin
-from .models import ProdutoFornecedor
+from .models import ProdutoFornecedor, NotaFiscal, ItemNotaFiscal
+
+
+class ItemNotaFiscalInline(admin.TabularInline):
+    model = ItemNotaFiscal
+    extra = 0
+    readonly_fields = ['subtotal', 'base_icms', 'valor_icms']
+
+
+@admin.register(NotaFiscal)
+class NotaFiscalAdmin(admin.ModelAdmin):
+    list_display = ['numero', 'serie', 'modelo', 'status', 'valor_total', 'data_emissao', 'chave_acesso']
+    list_filter = ['status', 'modelo', 'ambiente', 'data_emissao']
+    search_fields = ['numero', 'chave_acesso', 'cliente_nome']
+    readonly_fields = ['chave_acesso', 'protocolo', 'xml_autorizado', 'data_emissao']
+    inlines = [ItemNotaFiscalInline]
+    date_hierarchy = 'data_emissao'
+    
+    fieldsets = (
+        ('Identificação', {
+            'fields': ('venda', 'modelo', 'serie', 'numero', 'chave_acesso')
+        }),
+        ('Status e Autorização', {
+            'fields': ('status', 'ambiente', 'protocolo', 'data_emissao')
+        }),
+        ('Totais', {
+            'fields': ('base_icms', 'valor_icms', 'valor_total')
+        }),
+        ('XML e Documentos', {
+            'fields': ('xml_autorizado',),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(ProdutoFornecedor)

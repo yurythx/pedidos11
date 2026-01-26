@@ -61,19 +61,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         """Validação customizada."""
         data = super().validate(attrs)
         
-        # Adiciona informações do usuário na resposta
-        data['user'] = {
-            'id': str(self.user.id),
-            'username': self.user.username,
-            'email': self.user.email,
-            'nome_completo': self.user.get_full_name(),
-            'cargo': self.user.cargo,
-            'cargo_display': self.user.get_cargo_display(),
-            'empresa': {
-                'id': str(self.user.empresa.id) if self.user.empresa else None,
-                'nome': self.user.empresa.nome_fantasia if self.user.empresa else None
-            }
-        }
+        # Adiciona informações do usuário na resposta usando o serializer oficial
+        user_serializer = UserSerializer(self.user)
+        data['user'] = user_serializer.data
+        
+        # Garante compatibilidade com o frontend (empresa_id)
+        if self.user.empresa:
+            data['user']['empresa_id'] = str(self.user.empresa.id)
         
         return data
 

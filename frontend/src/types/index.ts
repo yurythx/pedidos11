@@ -17,6 +17,7 @@ export interface Usuario {
   last_name: string | null
   cargo: string
   empresa_id: string
+  telefone: string | null
   is_active: boolean
   is_colaborador?: boolean
   role_atendente?: boolean

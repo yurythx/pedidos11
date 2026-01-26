@@ -50,6 +50,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       // Se após tentar (ou se não tinha token), ainda não temos user e não é página pública
       if (!useAuthStore.getState().user && !isPublicPage) {
         router.replace('/login')
+        return
+      }
+
+      // Se o usuário JÁ está logado e tenta acessar o login, manda para a home
+      if (useAuthStore.getState().user && isAuthPage) {
+        router.replace('/')
       }
     }
 

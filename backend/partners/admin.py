@@ -16,15 +16,18 @@ class EnderecoInline(GenericTabularInline):
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'cpf_cnpj', 'tipo_pessoa', 'telefone', 'email', 'is_active']
+    list_display = ['nome', 'cpf_cnpj', 'tipo_pessoa', 'telefone', 'saldo_devedor', 'limite_credito', 'is_active']
     list_filter = ['tipo_pessoa', 'is_active', 'created_at']
     search_fields = ['nome', 'cpf_cnpj', 'email', 'slug']
-    readonly_fields = ['id', 'slug', 'created_at', 'updated_at']
+    readonly_fields = ['id', 'slug', 'saldo_devedor', 'created_at', 'updated_at']
     inlines = [EnderecoInline]
     
     fieldsets = (
         ('Informações Básicas', {
             'fields': ('nome', 'slug', 'tipo_pessoa', 'cpf_cnpj')
+        }),
+        ('Financeiro / Crédito', {
+            'fields': ('limite_credito', 'saldo_devedor')
         }),
         ('Contato', {
             'fields': ('telefone', 'email')

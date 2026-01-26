@@ -13,3 +13,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Filtra por empresa do usuário logado
         return CustomUser.objects.filter(empresa=self.request.user.empresa)
+
+    def perform_create(self, serializer):
+        # Associa automaticamente à empresa do usuário logado
+        serializer.save(empresa=self.request.user.empresa)
