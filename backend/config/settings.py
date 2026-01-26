@@ -4,6 +4,7 @@ Django settings para Projeto Nix.
 import os
 from pathlib import Path
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -268,6 +269,9 @@ SPECTACULAR_SETTINGS = {
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-tenant-id',
+]
 
 # CSRF Trusted Origins - Liberado para os domínios principais e localhost
 CSRF_TRUSTED_ORIGINS = [
