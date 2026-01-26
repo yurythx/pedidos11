@@ -7,9 +7,9 @@ from .models import ContaReceber, ContaPagar, Caixa, SessaoCaixa, MovimentoCaixa
 
 @admin.register(Caixa)
 class CaixaAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'codigo_terminal', 'ativo']
+    list_display = ['nome', 'serial', 'ativo']
     list_filter = ['ativo']
-    search_fields = ['nome', 'codigo_terminal']
+    search_fields = ['nome', 'serial']
 
 
 class MovimentoCaixaInline(admin.TabularInline):

@@ -8,15 +8,15 @@ from .models import ProdutoFornecedor, NotaFiscal, ItemNotaFiscal
 class ItemNotaFiscalInline(admin.TabularInline):
     model = ItemNotaFiscal
     extra = 0
-    readonly_fields = ['subtotal', 'base_icms', 'valor_icms']
+    readonly_fields = ['valor_total', 'base_icms', 'valor_icms']
 
 
 @admin.register(NotaFiscal)
 class NotaFiscalAdmin(admin.ModelAdmin):
-    list_display = ['numero', 'serie', 'modelo', 'status', 'valor_total', 'data_emissao', 'chave_acesso']
+    list_display = ['numero', 'serie', 'modelo', 'status', 'valor_total_nota', 'data_emissao', 'chave_acesso']
     list_filter = ['status', 'modelo', 'ambiente', 'data_emissao']
     search_fields = ['numero', 'chave_acesso', 'cliente_nome']
-    readonly_fields = ['chave_acesso', 'protocolo', 'xml_autorizado', 'data_emissao']
+    readonly_fields = ['chave_acesso', 'protocolo_autorizacao', 'xml_processado', 'data_emissao']
     inlines = [ItemNotaFiscalInline]
     date_hierarchy = 'data_emissao'
     
@@ -25,13 +25,13 @@ class NotaFiscalAdmin(admin.ModelAdmin):
             'fields': ('venda', 'modelo', 'serie', 'numero', 'chave_acesso')
         }),
         ('Status e Autorização', {
-            'fields': ('status', 'ambiente', 'protocolo', 'data_emissao')
+            'fields': ('status', 'ambiente', 'protocolo_autorizacao', 'data_emissao')
         }),
         ('Totais', {
-            'fields': ('base_icms', 'valor_icms', 'valor_total')
+            'fields': ('base_icms', 'valor_icms', 'valor_total_nota')
         }),
         ('XML e Documentos', {
-            'fields': ('xml_autorizado',),
+            'fields': ('xml_processado',),
             'classes': ('collapse',)
         }),
     )
