@@ -3,7 +3,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.db import connection
 from django.utils import timezone
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 import os
 
 @api_view(['GET'])
@@ -21,8 +24,8 @@ def health_check(request):
             "api": "up"
         },
         "system": {
-            "memory_usage_percent": psutil.virtual_memory().percent,
-            "cpu_usage_percent": psutil.cpu_percent(),
+            "memory_usage_percent": psutil.virtual_memory().percent if psutil else "N/A",
+            "cpu_usage_percent": psutil.cpu_percent() if psutil else "N/A",
         }
     }
 

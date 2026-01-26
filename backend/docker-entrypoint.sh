@@ -92,8 +92,8 @@ if not User.objects.filter(username='suporte').exists():
         empresa=empresa,
         first_name='Suporte',
         last_name='Sistema',
-        is_vendedor=True,
-        is_caixa=True
+        role_atendente=True,
+        role_caixa=True
     )
     print(f"✅ Usuário suporte criado: suporte/suporte123 (Superuser + Vendedor + Caixa)")
 else:

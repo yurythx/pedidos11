@@ -23,7 +23,7 @@ def criar_dados_iniciais():
     # 1. Criar Empresa
     print("📦 Criando empresa demo...")
     empresa, created = Empresa.objects.get_or_create(
-        cnpj='11222333000181',
+        cnpj='00000000000191',
         defaults={
             'nome_fantasia': 'Restaurante Demo',
             'razao_social': 'Restaurante Demo LTDA',

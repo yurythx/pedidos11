@@ -33,6 +33,7 @@ def criar_dados_demonstracao():
         nome_fantasia="Restaurante Demo",
         defaults={
             'razao_social': 'Restaurante Demo LTDA',
+            'cnpj': '00000000000191',
             'is_active': True
         }
     )

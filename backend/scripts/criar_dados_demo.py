@@ -32,7 +32,7 @@ def criar_dados_demo():
         nome_fantasia='Restaurante Demo',
         defaults={
             'razao_social': 'Restaurante Demo LTDA',
-            'cnpj': '12345678000199'
+            'cnpj': '00000000000191'
         }
     )
     print(f"   ✅ Empresa: {empresa.nome_fantasia}")
@@ -217,9 +217,9 @@ def criar_dados_demo():
     print("\n7️⃣ Criando vínculos fornecedor...")
     
     vinculos = [
-        (pao, '12345678000199', 'Fornecedor ABC', 'PAO-123', 12),  # Caixa 12un
-        (carne, '12345678000199', 'Fornecedor ABC', 'CAR-456', 10),  # Pacote 10un
-        (queijo, '98765432000188', 'Fornecedor XYZ', 'QUE-789', 20), # Pacote 20un
+        (pao, '00000000000191', 'Fornecedor ABC', 'PAO-123', 12),  # Caixa 12un
+        (carne, '00000000000191', 'Fornecedor ABC', 'CAR-456', 10),  # Pacote 10un
+        (queijo, '00000000000191', 'Fornecedor XYZ', 'QUE-789', 20), # Pacote 20un
     ]
     
     for produto, cnpj, nome, codigo, fator in vinculos:
